@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>English Study</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="主导航">
+        <div class="brand">
+          <div class="brand-mark">E</div>
+          <div>
+            <strong>English Study</strong>
+            <span>每天做一点</span>
+          </div>
+        </div>
+
+        <nav class="nav-tabs" aria-label="学习模块">
+          <button class="nav-tab active" data-view="today">今日</button>
+          <button class="nav-tab" data-view="words">单词</button>
+          <button class="nav-tab" data-view="listening">听力</button>
+          <button class="nav-tab" data-view="output">输出</button>
+          <button class="nav-tab" data-view="progress">进度</button>
+        </nav>
+      </aside>
+
+      <main class="workspace">
+        <section class="view active" id="view-today" aria-labelledby="today-title">
+          <div class="topbar">
+            <div>
+              <p class="eyebrow" id="today-date"></p>
+              <h1 id="today-title">今天只需要做一点点</h1>
+            </div>
+            <button class="ghost-button" id="reset-demo" title="清空演示数据">重置数据</button>
+          </div>
+
+          <div class="dashboard-grid">
+            <section class="focus-panel">
+              <div>
+                <p class="eyebrow">今日节奏</p>
+                <h2>45 分钟标准版，5 分钟也算赢</h2>
+                <p>
+                  用少量高频、间隔复习和真实输出，把英语变成每天能完成的小动作。
+                </p>
+              </div>
+              <img
+                src="https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=900&q=80"
+                alt="书桌上的英语学习资料"
+              />
+            </section>
+
+            <section class="metric-band" aria-label="今日统计">
+              <div>
+                <span id="today-complete">0/5</span>
+                <p>今日任务</p>
+              </div>
+              <div>
+                <span id="streak-days">0</span>
+                <p>连续天数</p>
+              </div>
+              <div>
+                <span id="due-count">0</span>
+                <p>待复习</p>
+              </div>
+            </section>
+          </div>
+
+          <section class="task-board" aria-label="今日任务清单">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Daily checklist</p>
+                <h2>今日任务</h2>
+              </div>
+              <button class="primary-button" id="minimum-mode">最低完成模式</button>
+            </div>
+            <div class="task-list" id="task-list"></div>
+          </section>
+        </section>
+
+        <section class="view" id="view-words" aria-labelledby="words-title">
+          <div class="topbar">
+            <div>
+              <p class="eyebrow">Vocabulary</p>
+              <h1 id="words-title">单词记忆</h1>
+            </div>
+          </div>
+
+          <div class="split-layout">
+            <section class="bank-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Word banks</p>
+                  <h2>选择适合你的词库</h2>
+                </div>
+                <span class="pill" id="bank-total">0 个在学</span>
+              </div>
+              <div class="bank-list" id="bank-list"></div>
+              <div class="study-tip">
+                <strong>推荐节奏</strong>
+                <p>每天只加入 10 个左右的新词，先做到快速认出意思，再慢慢记搭配和例句。</p>
+              </div>
+            </section>
+
+            <section class="review-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Spaced review</p>
+                  <h2>今天要复习</h2>
+                </div>
+                <span class="pill" id="review-total">0 个</span>
+              </div>
+              <div class="review-card" id="review-card"></div>
+              <div class="word-list" id="word-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="view-listening" aria-labelledby="listening-title">
+          <div class="topbar">
+            <div>
+              <p class="eyebrow">Listening</p>
+              <h1 id="listening-title">听力记录</h1>
+            </div>
+          </div>
+
+          <div class="split-layout">
+            <section class="form-panel">
+              <h2>添加材料</h2>
+              <form id="listening-form" class="stacked-form">
+                <label>
+                  标题
+                  <input name="title" autocomplete="off" placeholder="BBC Learning English: The English We Speak" required />
+                </label>
+                <label>
+                  链接
+                  <input name="url" autocomplete="off" placeholder="https://..." />
+                </label>
+                <label>
+                  听力分钟数
+                  <input name="minutes" type="number" min="1" max="240" value="15" required />
+                </label>
+                <fieldset class="segmented">
+                  <legend>难度</legend>
+                  <label><input type="radio" name="difficulty" value="easy" /> 简单</label>
+                  <label><input type="radio" name="difficulty" value="medium" checked /> 适中</label>
+                  <label><input type="radio" name="difficulty" value="hard" /> 太难</label>
+                </fieldset>
+                <label>
+                  听到的新句子
+                  <textarea name="note" rows="4" placeholder="I caught the phrase..."></textarea>
+                </label>
+                <button class="primary-button" type="submit">保存记录</button>
+              </form>
+            </section>
+
+            <section class="list-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">History</p>
+                  <h2>最近听力</h2>
+                </div>
+                <span class="pill" id="listening-minutes">0 分钟</span>
+              </div>
+              <div class="record-list" id="listening-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="view-output" aria-labelledby="output-title">
+          <div class="topbar">
+            <div>
+              <p class="eyebrow">Output</p>
+              <h1 id="output-title">英文输出</h1>
+            </div>
+          </div>
+
+          <div class="split-layout">
+            <section class="form-panel output-editor">
+              <h2>今天写 3-5 句</h2>
+              <form id="journal-form" class="stacked-form">
+                <label>
+                  英文日记
+                  <textarea
+                    name="journal"
+                    rows="10"
+                    placeholder="Today I learned...&#10;I found it difficult to...&#10;When I go to the UK, I need to..."
+                  ></textarea>
+                </label>
+                <button class="primary-button" type="submit">保存今日输出</button>
+              </form>
+            </section>
+
+            <section class="list-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Recent writing</p>
+                  <h2>输出历史</h2>
+                </div>
+                <span class="pill" id="journal-count">0 篇</span>
+              </div>
+              <div class="record-list" id="journal-list"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="view-progress" aria-labelledby="progress-title">
+          <div class="topbar">
+            <div>
+              <p class="eyebrow">Progress</p>
+              <h1 id="progress-title">学习进度</h1>
+            </div>
+          </div>
+
+          <section class="progress-grid">
+            <div class="progress-tile">
+              <span id="total-words">0</span>
+              <p>已添加单词</p>
+            </div>
+            <div class="progress-tile">
+              <span id="known-words">0</span>
+              <p>掌握单词</p>
+            </div>
+            <div class="progress-tile">
+              <span id="total-minutes">0</span>
+              <p>听力分钟</p>
+            </div>
+            <div class="progress-tile">
+              <span id="total-journals">0</span>
+              <p>输出次数</p>
+            </div>
+          </section>
+
+          <section class="task-board">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Last 7 days</p>
+                <h2>最近一周</h2>
+              </div>
+            </div>
+            <div class="week-grid" id="week-grid"></div>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
