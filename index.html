@@ -72,6 +72,17 @@
             </section>
           </div>
 
+          <section class="learning-flow-panel" aria-labelledby="today-flow-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">English-first path</p>
+                <h2 id="today-flow-title">今天按这个顺序学</h2>
+              </div>
+              <span class="pill">声音优先</span>
+            </div>
+            <div class="flow-steps" id="today-flow"></div>
+          </section>
+
           <section class="task-board" aria-label="今日任务清单">
             <div class="section-heading">
               <div>
@@ -166,33 +177,15 @@
           </div>
 
           <div class="split-layout">
-            <section class="form-panel">
-              <h2>添加材料</h2>
-              <form id="listening-form" class="stacked-form">
-                <label>
-                  标题
-                  <input name="title" autocomplete="off" placeholder="BBC Learning English: The English We Speak" required />
-                </label>
-                <label>
-                  链接
-                  <input name="url" autocomplete="off" placeholder="https://..." />
-                </label>
-                <label>
-                  听力分钟数
-                  <input name="minutes" type="number" min="1" max="240" value="15" required />
-                </label>
-                <fieldset class="segmented">
-                  <legend>难度</legend>
-                  <label><input type="radio" name="difficulty" value="easy" /> 简单</label>
-                  <label><input type="radio" name="difficulty" value="medium" checked /> 适中</label>
-                  <label><input type="radio" name="difficulty" value="hard" /> 太难</label>
-                </fieldset>
-                <label>
-                  听到的新句子
-                  <textarea name="note" rows="4" placeholder="I caught the phrase..."></textarea>
-                </label>
-                <button class="primary-button" type="submit">保存记录</button>
-              </form>
+            <section class="practice-panel">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Listening practice</p>
+                  <h2>系统听力练习</h2>
+                </div>
+                <span class="pill">不用自己添加</span>
+              </div>
+              <div id="listening-practice"></div>
             </section>
 
             <section class="list-panel">
@@ -217,19 +210,15 @@
           </div>
 
           <div class="split-layout">
-            <section class="form-panel output-editor">
-              <h2>今天写 3-5 句</h2>
-              <form id="journal-form" class="stacked-form">
-                <label>
-                  英文日记
-                  <textarea
-                    name="journal"
-                    rows="10"
-                    placeholder="Today I learned...&#10;I found it difficult to...&#10;When I go to the UK, I need to..."
-                  ></textarea>
-                </label>
-                <button class="primary-button" type="submit">保存今日输出</button>
-              </form>
+            <section class="practice-panel output-editor">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">Output practice</p>
+                  <h2>系统输出练习</h2>
+                </div>
+                <span class="pill">按步骤写</span>
+              </div>
+              <div id="output-practice"></div>
             </section>
 
             <section class="list-panel">
@@ -270,6 +259,27 @@
               <span id="total-journals">0</span>
               <p>输出次数</p>
             </div>
+          </section>
+
+          <section class="task-board">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Learning path</p>
+                <h2>英文学习顺序完成度</h2>
+              </div>
+            </div>
+            <div class="path-progress" id="path-progress"></div>
+          </section>
+
+          <section class="practice-panel">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Progress practice</p>
+                <h2>今日复盘练习</h2>
+              </div>
+              <span class="pill">英文复盘</span>
+            </div>
+            <div id="progress-practice"></div>
           </section>
 
           <section class="task-board">

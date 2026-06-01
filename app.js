@@ -5,27 +5,27 @@ const taskMeta = [
   {
     id: "words",
     title: "背新词",
-    detail: "从适合你的词库里加入 10 个左右的新词。",
+    detail: "选词库，先听读音，再看英文例句。",
   },
   {
     id: "review",
     title: "复习旧词",
-    detail: "用认识、模糊、不认识来安排下一次复习。",
+    detail: "用英文解释理解，中文只作为隐藏提示。",
   },
   {
     id: "listening",
     title: "听力 15 分钟",
-    detail: "选能听懂一半以上的材料，记录新句子。",
+    detail: "先听声音，再抓一个完整英文句子。",
   },
   {
     id: "shadowing",
     title: "跟读 10 分钟",
-    detail: "听一句，暂停，模仿一句，先让嘴巴动起来。",
+    detail: "把单词、例句或听力句子大声读出来。",
   },
   {
     id: "writing",
     title: "英文输出",
-    detail: "写 3-5 句，尽量用今天学过的词。",
+    detail: "用英文提示写 3-5 句，最后读一遍。",
   },
 ];
 
@@ -64,6 +64,115 @@ const reviewStepMeta = {
   rate: { label: "自我评分", index: 5 },
 };
 
+const learningFlow = [
+  {
+    id: "sound",
+    title: "Listen first",
+    label: "听声音",
+    detail: "先让耳朵认识英文，不急着翻译。",
+    taskIds: ["listening"],
+    speakText: "Listen first. Do not translate too early.",
+  },
+  {
+    id: "sentence",
+    title: "Catch a sentence",
+    label: "抓英文句子",
+    detail: "从例句或听力里抓一个完整英文句子。",
+    taskIds: ["words", "listening"],
+    speakText: "I can understand this sentence in context.",
+  },
+  {
+    id: "meaning",
+    title: "Think in English",
+    label: "英文理解",
+    detail: "用简单英文解释意思，中文只当最后提示。",
+    taskIds: ["review"],
+    speakText: "It means something simple in English.",
+  },
+  {
+    id: "speak",
+    title: "Say it out loud",
+    label: "开口跟读",
+    detail: "把单词、句子或日记读出来。",
+    taskIds: ["shadowing"],
+    speakText: "I will say it out loud.",
+  },
+  {
+    id: "output",
+    title: "Use it yourself",
+    label: "自己输出",
+    detail: "写 3-5 句，或者录一小段英文。",
+    taskIds: ["writing"],
+    speakText: "I can use English by myself.",
+  },
+];
+
+const listeningPractices = [
+  {
+    id: "accommodation-question",
+    title: "Accommodation question",
+    sentence: "Could you tell me when the tenancy agreement starts?",
+    phrase: "tenancy agreement",
+    definition: "You are asking for the first day of a rental contract.",
+    chinese: "你在询问租房合同什么时候开始。",
+    minutes: 5,
+    difficulty: "medium",
+  },
+  {
+    id: "seminar-clarification",
+    title: "Seminar clarification",
+    sentence: "Sorry, could you explain that point again more slowly?",
+    phrase: "explain that point",
+    definition: "You ask someone to repeat an idea in a clearer and slower way.",
+    chinese: "你在请求对方更慢、更清楚地解释一个点。",
+    minutes: 5,
+    difficulty: "easy",
+  },
+  {
+    id: "library-deadline",
+    title: "Library deadline",
+    sentence: "The books are due back by Friday afternoon.",
+    phrase: "due back",
+    definition: "Something must be returned before a certain time.",
+    chinese: "这些书必须在周五下午前归还。",
+    minutes: 5,
+    difficulty: "medium",
+  },
+];
+
+const outputPractices = [
+  {
+    id: "ask-for-help",
+    title: "Ask for help",
+    prompt: "Your tutor explained something too fast.",
+    model: "Could you clarify this point for me, please?",
+    phrase: "clarify this point",
+    definition: "You politely ask someone to explain an idea again.",
+    chinese: "你礼貌地请别人再解释一下某个点。",
+    starter: "Could you clarify this point for me, please?\nI want to understand it clearly before I continue.",
+  },
+  {
+    id: "introduce-concern",
+    title: "Explain a concern",
+    prompt: "You are worried about accommodation before going to the UK.",
+    model: "I am a little worried about finding suitable accommodation.",
+    phrase: "suitable accommodation",
+    definition: "You describe a problem that matters to you in a calm way.",
+    chinese: "你平静地说明自己担心住宿问题。",
+    starter: "I am a little worried about finding suitable accommodation.\nI need a place that is safe and close to campus.",
+  },
+  {
+    id: "make-a-plan",
+    title: "Make a study plan",
+    prompt: "You want to study English every day.",
+    model: "I will practise listening first, then I will say one sentence out loud.",
+    phrase: "practise listening",
+    definition: "You describe the next action you will take.",
+    chinese: "你说明自己下一步会怎么练习英语。",
+    starter: "I will practise listening first.\nThen I will say one sentence out loud.\nAfter that, I will write my own sentence.",
+  },
+];
+
 const createInitialState = () => {
   const today = nowDate();
   return {
@@ -84,6 +193,19 @@ let activeReviewId = null;
 let reviewStep = "sound";
 let chineseVisible = false;
 let lastAutoSpokenReviewId = null;
+let activeListeningPracticeIndex = 0;
+let listeningPracticeStep = "sound";
+let listeningChineseVisible = false;
+let lastAutoSpokenListeningId = null;
+let activeOutputPracticeIndex = 0;
+let outputPracticeStep = "sound";
+let outputChineseVisible = false;
+let outputDraft = "";
+let lastAutoSpokenOutputId = null;
+let progressPracticeStep = "sound";
+let progressChineseVisible = false;
+let progressPracticeCompleted = false;
+let lastAutoSpokenProgressId = null;
 let isBootstrapped = false;
 let isPublicDemo = false;
 
@@ -318,6 +440,20 @@ function soundButton(word, kind = "word") {
   `;
 }
 
+function textSoundButton(text, label = "播放英文") {
+  return `
+    <button
+      class="sound-button"
+      type="button"
+      data-speak-text="${escapeAttribute(text)}"
+      aria-label="${escapeAttribute(label)}"
+      title="${escapeAttribute(label)}"
+    >
+      ${soundIcon()}
+    </button>
+  `;
+}
+
 function getEnglishVoice() {
   if (!("speechSynthesis" in window)) return null;
 
@@ -353,8 +489,12 @@ function speakText(text, options = {}) {
   window.speechSynthesis.speak(utterance);
 }
 
+function isViewActive(viewName) {
+  return document.querySelector(`#view-${viewName}`)?.classList.contains("active");
+}
+
 function isWordsViewActive() {
-  return document.querySelector("#view-words")?.classList.contains("active");
+  return isViewActive("words");
 }
 
 function bindSoundButtons(container) {
@@ -364,6 +504,12 @@ function bindSoundButtons(container) {
       if (!word) return;
       const text = button.dataset.speakKind === "example" ? word.example : word.text;
       speakText(text || word.text);
+    });
+  });
+
+  container.querySelectorAll("[data-speak-text]").forEach((button) => {
+    button.addEventListener("click", () => {
+      speakText(button.dataset.speakText);
     });
   });
 }
@@ -460,6 +606,58 @@ function calculateStreak() {
   return count;
 }
 
+function isFlowStepDone(step, tasks = getTodayTasks()) {
+  return step.taskIds.some((taskId) => tasks[taskId]);
+}
+
+function renderTodayFlow() {
+  const container = document.querySelector("#today-flow");
+  if (!container) return;
+
+  const tasks = getTodayTasks();
+  container.innerHTML = learningFlow
+    .map((step, index) => {
+      const done = isFlowStepDone(step, tasks);
+      return `
+        <article class="flow-step ${done ? "done" : ""}">
+          <div class="flow-index">${index + 1}</div>
+          <div>
+            <header>
+              <strong>${escapeHTML(step.title)}</strong>
+              ${textSoundButton(step.speakText, `播放 ${step.title}`)}
+            </header>
+            <span>${escapeHTML(step.label)}</span>
+            <p>${escapeHTML(step.detail)}</p>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+
+  bindSoundButtons(container);
+}
+
+function renderPathProgress() {
+  const container = document.querySelector("#path-progress");
+  if (!container) return;
+
+  const tasks = getTodayTasks();
+  container.innerHTML = learningFlow
+    .map((step, index) => {
+      const done = isFlowStepDone(step, tasks);
+      return `
+        <article class="path-step ${done ? "complete" : ""}">
+          <span>${index + 1}</span>
+          <div>
+            <strong>${escapeHTML(step.label)}</strong>
+            <p>${done ? "今天已经练过" : escapeHTML(step.detail)}</p>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
 function renderBankList() {
   const list = document.querySelector("#bank-list");
   const total = document.querySelector("#bank-total");
@@ -524,8 +722,8 @@ function renderWordBankOptions() {
   }
 }
 
-function renderReviewProgress() {
-  const currentIndex = reviewSteps.indexOf(reviewStep);
+function renderPracticeProgress(currentStep) {
+  const currentIndex = reviewSteps.indexOf(currentStep);
   return `
     <div class="review-progress" aria-label="复习步骤">
       ${reviewSteps
@@ -536,6 +734,10 @@ function renderReviewProgress() {
         .join("")}
     </div>
   `;
+}
+
+function renderReviewProgress() {
+  return renderPracticeProgress(reviewStep);
 }
 
 function renderChineseHint(word) {
@@ -743,10 +945,537 @@ function renderWordList() {
   bindSoundButtons(list);
 }
 
+function getPracticeLabel(step, finalLabel) {
+  if (step === "rate" && finalLabel) return finalLabel;
+  return reviewStepMeta[step]?.label || "";
+}
+
+function renderPracticeTitle(title, step, finalLabel) {
+  const stepMeta = reviewStepMeta[step];
+  return `
+    <div class="practice-title">
+      <strong>${escapeHTML(title)}</strong>
+      <span class="pill">${stepMeta.index}/5 ${escapeHTML(getPracticeLabel(step, finalLabel))}</span>
+    </div>
+    ${renderPracticeProgress(step)}
+  `;
+}
+
+function renderPracticeChineseHint(text, visible, key) {
+  return `
+    <div class="chinese-hint">
+      <button class="ghost-button" type="button" data-toggle-practice-chinese="${escapeAttribute(key)}">
+        ${visible ? "隐藏中文" : "查看中文"}
+      </button>
+      ${visible ? `<p><strong>中文：</strong>${escapeHTML(text)}</p>` : ""}
+    </div>
+  `;
+}
+
+function renderPracticeSwitcher(items, activeIndex, kind) {
+  return `
+    <div class="practice-switcher" aria-label="选择系统练习">
+      ${items
+        .map(
+          (item, index) => `
+            <button
+              class="${index === activeIndex ? "active" : ""}"
+              type="button"
+              data-practice-kind="${escapeAttribute(kind)}"
+              data-practice-index="${index}"
+            >
+              ${index + 1}. ${escapeHTML(item.title)}
+            </button>
+          `
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function bindPracticeSwitcher(container) {
+  container.querySelectorAll("[data-practice-kind]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const nextIndex = Number(button.dataset.practiceIndex);
+      if (!Number.isInteger(nextIndex)) return;
+
+      if (button.dataset.practiceKind === "listening") {
+        activeListeningPracticeIndex = nextIndex;
+        listeningPracticeStep = "sound";
+        listeningChineseVisible = false;
+        lastAutoSpokenListeningId = null;
+        renderListeningPractice();
+      }
+
+      if (button.dataset.practiceKind === "output") {
+        activeOutputPracticeIndex = nextIndex;
+        outputPracticeStep = "sound";
+        outputChineseVisible = false;
+        outputDraft = "";
+        lastAutoSpokenOutputId = null;
+        renderOutputPractice();
+      }
+    });
+  });
+}
+
+function getActiveListeningPractice() {
+  return listeningPractices[activeListeningPracticeIndex] || listeningPractices[0];
+}
+
+function renderListeningPracticeStep(practice) {
+  if (listeningPracticeStep === "sound") {
+    return `
+      <section class="guided-step">
+        <p class="eyebrow">Step 1 · Sound</p>
+        <h3>Listen first</h3>
+        <p>先听声音，不看文字。听完后先在脑子里抓关键词，再进入下一步。</p>
+        <div class="sound-focus">
+          ${textSoundButton(practice.sentence, "播放听力句子")}
+          <span>Audio first</span>
+        </div>
+        ${renderStepButton("example", "下一步：看句子")}
+      </section>
+    `;
+  }
+
+  if (listeningPracticeStep === "example") {
+    return `
+      <section class="guided-step">
+        <p class="eyebrow">Step 2 · Sentence</p>
+        <h3>Catch the sentence</h3>
+        <div class="english-box">
+          <p>${escapeHTML(practice.sentence)}</p>
+          ${textSoundButton(practice.sentence, "播放听力句子")}
+        </div>
+        <p>只看英文句子，试着通过语境理解它。</p>
+        ${renderStepButton("definition", "下一步：看英文解释")}
+      </section>
+    `;
+  }
+
+  if (listeningPracticeStep === "definition") {
+    return `
+      <section class="guided-step">
+        <p class="eyebrow">Step 3 · Meaning in English</p>
+        <h3>Understand it in English</h3>
+        <div class="definition-box">
+          <strong>${escapeHTML(practice.phrase)}</strong>
+          <span>= ${escapeHTML(practice.definition)}</span>
+        </div>
+        ${renderStepButton("speak", "下一步：开口跟读")}
+      </section>
+    `;
+  }
+
+  if (listeningPracticeStep === "speak") {
+    return `
+      <section class="guided-step">
+        <p class="eyebrow">Step 4 · Speak</p>
+        <h3>Repeat it out loud</h3>
+        <div class="speak-stack">
+          <div>
+            <span>Phrase</span>
+            <strong>${escapeHTML(practice.phrase)}</strong>
+            ${textSoundButton(practice.phrase, "播放短语")}
+          </div>
+          <div>
+            <span>Sentence</span>
+            <p>${escapeHTML(practice.sentence)}</p>
+            ${textSoundButton(practice.sentence, "播放听力句子")}
+          </div>
+        </div>
+        <button class="primary-button" type="button" data-next-step="rate">我已跟读</button>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="guided-step">
+      <p class="eyebrow">Step 5 · Rate yourself</p>
+      <h3>How much did you catch?</h3>
+      <p>根据刚才的声音、句子和英文解释评分。系统会把这次练习保存到听力记录。</p>
+      <div class="review-actions">
+        <button data-listening-result="known">听懂了</button>
+        <button data-listening-result="fuzzy">有点模糊</button>
+        <button data-listening-result="unknown">没听清</button>
+      </div>
+    </section>
+  `;
+}
+
+function renderListeningPractice() {
+  const container = document.querySelector("#listening-practice");
+  if (!container) return;
+
+  const practice = getActiveListeningPractice();
+  container.innerHTML = `
+    <article class="practice-card">
+      ${renderPracticeTitle(practice.title, listeningPracticeStep, "自我评分")}
+      ${renderListeningPracticeStep(practice)}
+      ${renderPracticeChineseHint(practice.chinese, listeningChineseVisible, "listening")}
+    </article>
+    ${renderPracticeSwitcher(listeningPractices, activeListeningPracticeIndex, "listening")}
+  `;
+
+  container.querySelectorAll("[data-next-step]").forEach((button) => {
+    button.addEventListener("click", () => {
+      listeningPracticeStep = button.dataset.nextStep;
+      renderListeningPractice();
+    });
+  });
+
+  container.querySelectorAll("[data-listening-result]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void completeListeningPractice(button.dataset.listeningResult).catch(handleApiError);
+    });
+  });
+
+  container.querySelector("[data-toggle-practice-chinese='listening']")?.addEventListener("click", () => {
+    listeningChineseVisible = !listeningChineseVisible;
+    renderListeningPractice();
+  });
+
+  bindPracticeSwitcher(container);
+  bindSoundButtons(container);
+
+  if (
+    isViewActive("listening") &&
+    listeningPracticeStep === "sound" &&
+    lastAutoSpokenListeningId !== practice.id
+  ) {
+    lastAutoSpokenListeningId = practice.id;
+    window.setTimeout(() => speakText(practice.sentence, { silent: true }), 150);
+  }
+}
+
+async function completeListeningPractice(result) {
+  const practice = getActiveListeningPractice();
+  const difficulty = result === "known" ? "easy" : result === "unknown" ? "hard" : "medium";
+  const next = await api.saveListening({
+    title: practice.title,
+    url: "",
+    minutes: practice.minutes,
+    difficulty,
+    note: `${practice.sentence}\n${practice.definition}`,
+  });
+  applyBootstrap(next);
+  applyBootstrap(await api.updateTask("shadowing", true));
+
+  activeListeningPracticeIndex = (activeListeningPracticeIndex + 1) % listeningPractices.length;
+  listeningPracticeStep = "sound";
+  listeningChineseVisible = false;
+  lastAutoSpokenListeningId = null;
+  render();
+}
+
+function getActiveOutputPractice() {
+  return outputPractices[activeOutputPracticeIndex] || outputPractices[0];
+}
+
+function getOutputDraftTemplate(practice) {
+  const existing = state.journals[nowDate()]?.trim();
+  return existing ? `${existing}\n\n${practice.starter}` : practice.starter;
+}
+
+function renderOutputPracticeStep(practice) {
+  if (outputPracticeStep === "sound") {
+    return `
+      <section class="guided-step">
+        <p class="eyebrow">Step 1 · Sound</p>
+        <h3>Listen to a useful sentence</h3>
+        <p>先听一句可以直接模仿的英文，不急着写。</p>
+        <div class="sound-focus">
+          ${textSoundButton(practice.model, "播放输出例句")}
+          <span>Model sentence</span>
+        </div>
+        ${renderStepButton("example", "下一步：看例句")}
+      </section>
+    `;
+  }
+
+  if (outputPracticeStep === "example") {
+    return `
+      <section class="guided-step">
+        <p class="eyebrow">Step 2 · Sentence</p>
+        <h3>Read the model</h3>
+        <p class="practice-scenario">${escapeHTML(practice.prompt)}</p>
+        <div class="english-box">
+          <p>${escapeHTML(practice.model)}</p>
+          ${textSoundButton(practice.model, "播放输出例句")}
+        </div>
+        ${renderStepButton("definition", "下一步：看英文解释")}
+      </section>
+    `;
+  }
+
+  if (outputPracticeStep === "definition") {
+    return `
+      <section class="guided-step">
+        <p class="eyebrow">Step 3 · Meaning in English</p>
+        <h3>Know what you are saying</h3>
+        <div class="definition-box">
+          <strong>${escapeHTML(practice.phrase)}</strong>
+          <span>= ${escapeHTML(practice.definition)}</span>
+        </div>
+        ${renderStepButton("speak", "下一步：开口跟读")}
+      </section>
+    `;
+  }
+
+  if (outputPracticeStep === "speak") {
+    return `
+      <section class="guided-step">
+        <p class="eyebrow">Step 4 · Speak</p>
+        <h3>Say the model first</h3>
+        <div class="speak-stack">
+          <div>
+            <span>Phrase</span>
+            <strong>${escapeHTML(practice.phrase)}</strong>
+            ${textSoundButton(practice.phrase, "播放短语")}
+          </div>
+          <div>
+            <span>Sentence</span>
+            <p>${escapeHTML(practice.model)}</p>
+            ${textSoundButton(practice.model, "播放输出例句")}
+          </div>
+        </div>
+        <button class="primary-button" type="button" data-next-step="rate">我已跟读</button>
+      </section>
+    `;
+  }
+
+  const draft = outputDraft || getOutputDraftTemplate(practice);
+  return `
+    <section class="guided-step">
+      <p class="eyebrow">Step 5 · Write</p>
+      <h3>Use it yourself</h3>
+      <p>用刚才的句型写 2-3 句。可以改内容，但尽量保留英文表达。</p>
+      <textarea id="output-draft" class="practice-textarea" rows="7">${escapeHTML(draft)}</textarea>
+      <button class="primary-button" type="button" data-save-output>保存今日输出</button>
+    </section>
+  `;
+}
+
+function renderOutputPractice() {
+  const container = document.querySelector("#output-practice");
+  if (!container) return;
+
+  const practice = getActiveOutputPractice();
+  container.innerHTML = `
+    <article class="practice-card">
+      ${renderPracticeTitle(practice.title, outputPracticeStep, "写下输出")}
+      ${renderOutputPracticeStep(practice)}
+      ${renderPracticeChineseHint(practice.chinese, outputChineseVisible, "output")}
+    </article>
+    ${renderPracticeSwitcher(outputPractices, activeOutputPracticeIndex, "output")}
+  `;
+
+  container.querySelectorAll("[data-next-step]").forEach((button) => {
+    button.addEventListener("click", () => {
+      outputPracticeStep = button.dataset.nextStep;
+      renderOutputPractice();
+    });
+  });
+
+  const textarea = container.querySelector("#output-draft");
+  if (textarea) {
+    outputDraft = textarea.value;
+    textarea.addEventListener("input", (event) => {
+      outputDraft = event.target.value;
+    });
+  }
+
+  container.querySelector("[data-save-output]")?.addEventListener("click", () => {
+    const content = container.querySelector("#output-draft")?.value.trim() || "";
+    void completeOutputPractice(content).catch(handleApiError);
+  });
+
+  container.querySelector("[data-toggle-practice-chinese='output']")?.addEventListener("click", () => {
+    outputChineseVisible = !outputChineseVisible;
+    renderOutputPractice();
+  });
+
+  bindPracticeSwitcher(container);
+  bindSoundButtons(container);
+
+  if (
+    isViewActive("output") &&
+    outputPracticeStep === "sound" &&
+    lastAutoSpokenOutputId !== practice.id
+  ) {
+    lastAutoSpokenOutputId = practice.id;
+    window.setTimeout(() => speakText(practice.model, { silent: true }), 150);
+  }
+}
+
+async function completeOutputPractice(content) {
+  if (!content) {
+    window.alert("先写 1-2 句英文，再保存。");
+    return;
+  }
+
+  applyBootstrap(await api.saveJournal(content));
+  applyBootstrap(await api.updateTask("shadowing", true));
+
+  activeOutputPracticeIndex = (activeOutputPracticeIndex + 1) % outputPractices.length;
+  outputPracticeStep = "sound";
+  outputChineseVisible = false;
+  outputDraft = "";
+  lastAutoSpokenOutputId = null;
+  render();
+}
+
+function getProgressPractice() {
+  const tasks = getTodayTasks();
+  const finished = taskMeta.filter((task) => tasks[task.id]).length;
+  const totalMinutes = state.listening.reduce((sum, item) => sum + Number(item.minutes || 0), 0);
+  const journalCount = Object.keys(state.journals).length;
+  const knownWords = state.words.filter((word) => word.status === "known").length;
+  const sentence = `Today I completed ${finished} of five study steps. I listened for ${totalMinutes} minutes and I have ${knownWords} familiar words.`;
+
+  return {
+    id: `progress-${nowDate()}-${finished}-${totalMinutes}-${journalCount}-${knownWords}`,
+    title: "Daily progress review",
+    sentence,
+    phrase: "make progress",
+    definition: "You describe what you practised and what improved today.",
+    chinese: `今天我完成了 ${finished}/5 个学习步骤，听力 ${totalMinutes} 分钟，熟悉单词 ${knownWords} 个。`,
+  };
+}
+
+function renderProgressPracticeStep(practice) {
+  if (progressPracticeStep === "sound") {
+    return `
+      <section class="guided-step">
+        <p class="eyebrow">Step 1 · Sound</p>
+        <h3>Listen to your progress</h3>
+        <p>先听一遍英文复盘，让“进步”这件事也用英文表达。</p>
+        <div class="sound-focus">
+          ${textSoundButton(practice.sentence, "播放今日复盘")}
+          <span>Daily review</span>
+        </div>
+        ${renderStepButton("example", "下一步：看句子")}
+      </section>
+    `;
+  }
+
+  if (progressPracticeStep === "example") {
+    return `
+      <section class="guided-step">
+        <p class="eyebrow">Step 2 · Sentence</p>
+        <h3>Read the review sentence</h3>
+        <div class="english-box">
+          <p>${escapeHTML(practice.sentence)}</p>
+          ${textSoundButton(practice.sentence, "播放今日复盘")}
+        </div>
+        ${renderStepButton("definition", "下一步：看英文解释")}
+      </section>
+    `;
+  }
+
+  if (progressPracticeStep === "definition") {
+    return `
+      <section class="guided-step">
+        <p class="eyebrow">Step 3 · Meaning in English</p>
+        <h3>Understand the review</h3>
+        <div class="definition-box">
+          <strong>${escapeHTML(practice.phrase)}</strong>
+          <span>= ${escapeHTML(practice.definition)}</span>
+        </div>
+        ${renderStepButton("speak", "下一步：开口跟读")}
+      </section>
+    `;
+  }
+
+  if (progressPracticeStep === "speak") {
+    return `
+      <section class="guided-step">
+        <p class="eyebrow">Step 4 · Speak</p>
+        <h3>Say your progress out loud</h3>
+        <div class="speak-stack">
+          <div>
+            <span>Phrase</span>
+            <strong>${escapeHTML(practice.phrase)}</strong>
+            ${textSoundButton(practice.phrase, "播放短语")}
+          </div>
+          <div>
+            <span>Sentence</span>
+            <p>${escapeHTML(practice.sentence)}</p>
+            ${textSoundButton(practice.sentence, "播放今日复盘")}
+          </div>
+        </div>
+        <button class="primary-button" type="button" data-next-step="rate">我已跟读</button>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="guided-step">
+      <p class="eyebrow">Step 5 · Finish</p>
+      <h3>Complete the review</h3>
+      <p>${progressPracticeCompleted ? "今日复盘已经完成。" : "点完成后，系统会把这次开口复盘记入今日练习。"}</p>
+      <button class="primary-button" type="button" data-complete-progress ${progressPracticeCompleted ? "disabled" : ""}>
+        ${progressPracticeCompleted ? "已完成复盘" : "完成复盘"}
+      </button>
+    </section>
+  `;
+}
+
+function renderProgressPractice() {
+  const container = document.querySelector("#progress-practice");
+  if (!container) return;
+
+  const practice = getProgressPractice();
+  container.innerHTML = `
+    <article class="practice-card">
+      ${renderPracticeTitle(practice.title, progressPracticeStep, "完成复盘")}
+      ${renderProgressPracticeStep(practice)}
+      ${renderPracticeChineseHint(practice.chinese, progressChineseVisible, "progress")}
+    </article>
+  `;
+
+  container.querySelectorAll("[data-next-step]").forEach((button) => {
+    button.addEventListener("click", () => {
+      progressPracticeStep = button.dataset.nextStep;
+      renderProgressPractice();
+    });
+  });
+
+  container.querySelector("[data-complete-progress]")?.addEventListener("click", () => {
+    void completeProgressPractice().catch(handleApiError);
+  });
+
+  container.querySelector("[data-toggle-practice-chinese='progress']")?.addEventListener("click", () => {
+    progressChineseVisible = !progressChineseVisible;
+    renderProgressPractice();
+  });
+
+  bindSoundButtons(container);
+
+  if (
+    isViewActive("progress") &&
+    progressPracticeStep === "sound" &&
+    lastAutoSpokenProgressId !== practice.id
+  ) {
+    lastAutoSpokenProgressId = practice.id;
+    window.setTimeout(() => speakText(practice.sentence, { silent: true }), 150);
+  }
+}
+
+async function completeProgressPractice() {
+  applyBootstrap(await api.updateTask("shadowing", true));
+  progressPracticeCompleted = true;
+  render();
+}
+
 function renderListening() {
   const list = document.querySelector("#listening-list");
+  const totalNode = document.querySelector("#listening-minutes");
+  if (!list || !totalNode) return;
+
   const total = state.listening.reduce((sum, item) => sum + Number(item.minutes || 0), 0);
-  document.querySelector("#listening-minutes").textContent = `${total} 分钟`;
+  totalNode.textContent = `${total} 分钟`;
 
   if (!state.listening.length) {
     list.innerHTML = `<p class="empty-state">还没有听力记录。今天先听 15 分钟就很好。</p>`;
@@ -765,6 +1494,7 @@ function renderListening() {
       const link = item.url
         ? `<a href="${escapeAttribute(item.url)}" target="_blank" rel="noreferrer">${escapeHTML(item.url)}</a>`
         : "";
+      const note = item.note || "No sentence saved yet.";
       return `
         <article class="record-row">
           <header>
@@ -773,21 +1503,26 @@ function renderListening() {
           </header>
           <p>${escapeHTML(formatDate(item.createdAt))} · ${difficulty}</p>
           ${link}
-          <p>${escapeHTML(item.note || "没有记录新句子")}</p>
+          <div class="record-english">
+            <p>${escapeHTML(note)}</p>
+            ${textSoundButton(note, "播放听力记录")}
+          </div>
         </article>
       `;
     })
     .join("");
+
+  bindSoundButtons(list);
 }
 
 function renderJournals() {
-  const today = nowDate();
-  const form = document.querySelector("#journal-form");
   const list = document.querySelector("#journal-list");
+  const countNode = document.querySelector("#journal-count");
+  if (!list || !countNode) return;
+
   const entries = Object.entries(state.journals).sort((a, b) => b[0].localeCompare(a[0]));
 
-  form.elements.journal.value = state.journals[today] || "";
-  document.querySelector("#journal-count").textContent = `${entries.length} 篇`;
+  countNode.textContent = `${entries.length} 篇`;
 
   if (!entries.length) {
     list.innerHTML = `<p class="empty-state">还没有英文输出。三句就够，重点是每天开口或下笔。</p>`;
@@ -803,11 +1538,16 @@ function renderJournals() {
             <strong>${escapeHTML(formatDate(date))}</strong>
             <span class="pill">${content.split(/\s+/).filter(Boolean).length} 词</span>
           </header>
-          <p>${escapeHTML(content)}</p>
+          <div class="record-english">
+            <p>${escapeHTML(content)}</p>
+            ${textSoundButton(content, "播放英文输出")}
+          </div>
         </article>
       `
     )
     .join("");
+
+  bindSoundButtons(list);
 }
 
 function renderProgress() {
@@ -852,12 +1592,17 @@ function render() {
   renderDemoState();
   renderTasks();
   renderTodayStats();
+  renderTodayFlow();
   renderBankList();
   renderReview();
   renderWordList();
+  renderListeningPractice();
   renderListening();
+  renderOutputPractice();
   renderJournals();
   renderProgress();
+  renderPathProgress();
+  renderProgressPractice();
 }
 
 function renderDemoState() {
@@ -899,45 +1644,26 @@ function bindNavigation() {
         lastAutoSpokenReviewId = null;
         renderReview();
       }
+      if (button.dataset.view === "listening") {
+        lastAutoSpokenListeningId = null;
+        renderListeningPractice();
+      }
+      if (button.dataset.view === "output") {
+        lastAutoSpokenOutputId = null;
+        renderOutputPractice();
+      }
+      if (button.dataset.view === "progress") {
+        lastAutoSpokenProgressId = null;
+        renderProgressPractice();
+      }
     });
   });
 }
 
 function bindForms() {
-  document.querySelector("#word-bank-form").addEventListener("submit", (event) => {
+  document.querySelector("#word-bank-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     void saveBankWord(event.currentTarget).catch(handleApiError);
-  });
-
-  document.querySelector("#listening-form").addEventListener("submit", (event) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const data = new FormData(form);
-
-    void api
-      .saveListening({
-        title: data.get("title").trim(),
-        url: data.get("url").trim(),
-        minutes: Number(data.get("minutes")),
-        difficulty: data.get("difficulty"),
-        note: data.get("note").trim(),
-      })
-      .then((next) => {
-        form.reset();
-        form.elements.minutes.value = 15;
-        form.elements.difficulty.value = "medium";
-        applyBootstrap(next);
-        render();
-      })
-      .catch(handleApiError);
-  });
-
-  document.querySelector("#journal-form").addEventListener("submit", (event) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const content = form.elements.journal.value.trim();
-
-    void applyMutation(api.saveJournal(content)).catch(handleApiError);
   });
 }
 

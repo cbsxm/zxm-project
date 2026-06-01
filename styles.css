@@ -246,8 +246,10 @@ h2 {
 }
 
 .task-board,
+.learning-flow-panel,
 .bank-panel,
 .form-panel,
+.practice-panel,
 .review-panel,
 .list-panel {
   border: 1px solid var(--line);
@@ -264,10 +266,84 @@ h2 {
   margin-bottom: 18px;
 }
 
+.view > .task-board,
+.view > .learning-flow-panel,
+.view > .practice-panel {
+  margin-bottom: 18px;
+}
+
 .task-list {
   display: grid;
   grid-template-columns: repeat(5, minmax(150px, 1fr));
   gap: 12px;
+}
+
+.flow-steps,
+.path-progress {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.flow-step,
+.path-step {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 140px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffaf0;
+}
+
+.flow-step.done,
+.path-step.complete {
+  border-color: rgba(60, 122, 86, 0.38);
+  background: #eef8f1;
+}
+
+.flow-index,
+.path-step > span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #e7f0f7;
+  color: var(--blue-dark);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.flow-step header,
+.prompt-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.flow-step strong,
+.path-step strong {
+  display: block;
+  line-height: 1.3;
+}
+
+.flow-step span:not(.flow-index) {
+  display: block;
+  margin-top: 4px;
+  color: var(--blue-dark);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.flow-step p,
+.path-step p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 .task-item {
@@ -429,6 +505,132 @@ h2 {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.6;
+}
+
+.guided-page-card {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffaf0;
+}
+
+.mini-flow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.mini-flow span {
+  display: grid;
+  place-items: center;
+  min-height: 36px;
+  padding: 6px;
+  border: 1px solid #d8d0c3;
+  border-radius: 8px;
+  background: white;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.prompt-board {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.prompt-card {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+}
+
+.prompt-card p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.prompt-card .ghost-button {
+  justify-self: start;
+}
+
+.practice-card {
+  min-height: 430px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  padding: 20px;
+}
+
+.practice-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.practice-title strong {
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.practice-switcher {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.practice-switcher button {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf8;
+  color: var(--muted);
+  text-align: left;
+  padding: 0 12px;
+}
+
+.practice-switcher button.active,
+.practice-switcher button:hover {
+  border-color: rgba(47, 111, 159, 0.35);
+  background: #e7f0f7;
+  color: var(--blue-dark);
+}
+
+.sound-focus {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d7d0c4;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.sound-focus span {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.practice-scenario {
+  padding: 12px;
+  border-left: 3px solid var(--blue);
+  background: #f6f9fb;
+}
+
+.practice-textarea {
+  min-height: 170px;
 }
 
 .word-bank-editor {
@@ -803,6 +1005,21 @@ textarea:focus {
   overflow-wrap: anywhere;
 }
 
+.record-english {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.record-english p {
+  color: var(--ink);
+}
+
 .progress-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -869,7 +1086,10 @@ textarea:focus {
 
   .dashboard-grid,
   .split-layout,
-  .progress-grid {
+  .progress-grid,
+  .flow-steps,
+  .path-progress,
+  .mini-flow {
     grid-template-columns: 1fr;
   }
 
@@ -912,14 +1132,21 @@ textarea:focus {
   }
 
   .task-list,
+  .flow-steps,
+  .path-progress,
   .review-actions,
   .week-grid,
   .segmented,
   .form-grid,
   .bank-meta,
   .bank-card header,
+  .flow-step header,
+  .prompt-card header,
+  .practice-title,
   .speak-stack > div,
-  .english-box {
+  .english-box,
+  .sound-focus,
+  .record-english {
     grid-template-columns: 1fr;
     display: grid;
   }
