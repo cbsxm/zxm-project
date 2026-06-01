@@ -27,6 +27,11 @@
       </aside>
 
       <main class="workspace">
+        <div class="demo-banner" id="demo-banner" hidden>
+          <strong>展示模式</strong>
+          <span>这里使用演示数据，适合发给别人体验，不会读取你的个人学习记录。</span>
+        </div>
+
         <section class="view active" id="view-today" aria-labelledby="today-title">
           <div class="topbar">
             <div>
@@ -97,6 +102,41 @@
                 <span class="pill" id="bank-total">0 个在学</span>
               </div>
               <div class="bank-list" id="bank-list"></div>
+              <section class="word-bank-editor" aria-labelledby="word-bank-editor-title">
+                <div>
+                  <p class="eyebrow">Update bank</p>
+                  <h2 id="word-bank-editor-title">更新词库</h2>
+                </div>
+                <form id="word-bank-form" class="stacked-form">
+                  <label>
+                    保存到
+                    <select name="bankId" id="word-bank-select" required></select>
+                  </label>
+                  <div class="form-grid">
+                    <label>
+                      单词
+                      <input name="text" autocomplete="off" placeholder="clarify" required />
+                    </label>
+                    <label>
+                      中文意思
+                      <input name="meaning" autocomplete="off" placeholder="澄清；说明" required />
+                    </label>
+                  </div>
+                  <label>
+                    常见搭配
+                    <input name="phrase" autocomplete="off" placeholder="clarify a point" />
+                  </label>
+                  <label>
+                    例句
+                    <textarea name="example" rows="3" placeholder="Could you clarify this point for me?"></textarea>
+                  </label>
+                  <label>
+                    英文解释
+                    <textarea name="definition" rows="3" placeholder="to make something easier to understand"></textarea>
+                  </label>
+                  <button class="primary-button" type="submit">保存到词库</button>
+                </form>
+              </section>
               <div class="study-tip">
                 <strong>推荐节奏</strong>
                 <p>每天只加入 10 个左右的新词，先做到快速认出意思，再慢慢记搭配和例句。</p>

@@ -1,4 +1,5 @@
 const STORAGE_KEY = "english-study-mvp-v1";
+const MIGRATION_KEY = `${STORAGE_KEY}:backend-migrated`;
 
 const taskMeta = [
   {
@@ -28,320 +29,7 @@ const taskMeta = [
   },
 ];
 
-const wordBanks = [
-  {
-    id: "uk-life",
-    name: "英国留学生活",
-    level: "先学",
-    description: "签证、住宿、银行、看病、超市等刚到英国最常见的词。",
-    words: [
-      {
-        text: "accommodation",
-        meaning: "住宿",
-        phrase: "student accommodation",
-        example: "I am looking for student accommodation near campus.",
-        definition: "a place where you live or stay",
-      },
-      {
-        text: "deposit",
-        meaning: "押金；存款",
-        phrase: "pay a deposit",
-        example: "I need to pay a deposit before moving in.",
-        definition: "money you pay first to keep or rent something",
-      },
-      {
-        text: "tenancy",
-        meaning: "租赁；租期",
-        phrase: "tenancy agreement",
-        example: "Please read the tenancy agreement carefully.",
-        definition: "the period or situation of renting a place",
-      },
-      {
-        text: "landlord",
-        meaning: "房东",
-        phrase: "contact the landlord",
-        example: "I contacted the landlord about the heating.",
-        definition: "a person who rents a room or house to you",
-      },
-      {
-        text: "appointment",
-        meaning: "预约；约定",
-        phrase: "book an appointment",
-        example: "I booked an appointment with the GP.",
-        definition: "a planned time to meet someone or get a service",
-      },
-      {
-        text: "prescription",
-        meaning: "处方",
-        phrase: "get a prescription",
-        example: "The doctor gave me a prescription.",
-        definition: "a doctor's note that lets you get medicine",
-      },
-      {
-        text: "refund",
-        meaning: "退款",
-        phrase: "ask for a refund",
-        example: "Can I ask for a refund?",
-        definition: "money that is given back after you return something",
-      },
-      {
-        text: "receipt",
-        meaning: "收据；小票",
-        phrase: "keep the receipt",
-        example: "Keep the receipt in case you need to return it.",
-        definition: "a piece of paper or message that proves you paid",
-      },
-      {
-        text: "queue",
-        meaning: "队伍；排队",
-        phrase: "stand in a queue",
-        example: "People were standing in a queue outside the store.",
-        definition: "a line of people waiting for something",
-      },
-      {
-        text: "branch",
-        meaning: "分行；分店",
-        phrase: "bank branch",
-        example: "There is a bank branch near my campus.",
-        definition: "one local office or shop of a larger company",
-      },
-    ],
-  },
-  {
-    id: "academic",
-    name: "课堂与作业",
-    level: "高频",
-    description: "听课、交作业、考试和邮件里反复出现的校园词。",
-    words: [
-      {
-        text: "assignment",
-        meaning: "作业；任务",
-        phrase: "submit an assignment",
-        example: "The assignment is due next Friday.",
-        definition: "a piece of work you must finish for a course",
-      },
-      {
-        text: "deadline",
-        meaning: "截止日期",
-        phrase: "meet the deadline",
-        example: "I need to meet the deadline for my essay.",
-        definition: "the final time or date when work must be finished",
-      },
-      {
-        text: "lecture",
-        meaning: "讲座；课程",
-        phrase: "attend a lecture",
-        example: "I attended a lecture on academic writing.",
-        definition: "a class where a teacher talks to a group of students",
-      },
-      {
-        text: "seminar",
-        meaning: "研讨课",
-        phrase: "join a seminar",
-        example: "We discussed the reading in the seminar.",
-        definition: "a small class where students discuss a topic",
-      },
-      {
-        text: "tutorial",
-        meaning: "辅导课；小课",
-        phrase: "weekly tutorial",
-        example: "The tutorial helped me understand the topic.",
-        definition: "a small class or meeting for help with study",
-      },
-      {
-        text: "feedback",
-        meaning: "反馈；意见",
-        phrase: "receive feedback",
-        example: "I received useful feedback from my tutor.",
-        definition: "comments that help you improve your work",
-      },
-      {
-        text: "reference",
-        meaning: "参考文献；引用",
-        phrase: "add a reference",
-        example: "You need to add references to your essay.",
-        definition: "information that shows where an idea came from",
-      },
-      {
-        text: "plagiarism",
-        meaning: "抄袭",
-        phrase: "avoid plagiarism",
-        example: "Universities take plagiarism very seriously.",
-        definition: "using someone else's work or ideas as your own",
-      },
-      {
-        text: "extension",
-        meaning: "延期",
-        phrase: "request an extension",
-        example: "I requested an extension because I was ill.",
-        definition: "extra time to finish something",
-      },
-      {
-        text: "criteria",
-        meaning: "标准；准则",
-        phrase: "marking criteria",
-        example: "Check the marking criteria before writing.",
-        definition: "standards used to judge or decide something",
-      },
-    ],
-  },
-  {
-    id: "speaking",
-    name: "开口表达高频词",
-    level: "实用",
-    description: "让你在问问题、表达不懂、描述困难时更容易开口。",
-    words: [
-      {
-        text: "clarify",
-        meaning: "澄清；说明",
-        phrase: "clarify a point",
-        example: "Could you clarify this point for me?",
-        definition: "to make something easier to understand",
-      },
-      {
-        text: "explain",
-        meaning: "解释",
-        phrase: "explain the reason",
-        example: "Could you explain the reason again?",
-        definition: "to make an idea clear by giving details",
-      },
-      {
-        text: "repeat",
-        meaning: "重复",
-        phrase: "repeat the question",
-        example: "Could you repeat the question, please?",
-        definition: "to say or do something again",
-      },
-      {
-        text: "recommend",
-        meaning: "推荐；建议",
-        phrase: "recommend a book",
-        example: "Can you recommend a good grammar book?",
-        definition: "to say that something is good or useful",
-      },
-      {
-        text: "prefer",
-        meaning: "更喜欢",
-        phrase: "prefer to study alone",
-        example: "I prefer to study in the library.",
-        definition: "to like one thing more than another thing",
-      },
-      {
-        text: "struggle",
-        meaning: "吃力；挣扎",
-        phrase: "struggle with listening",
-        example: "I struggle with fast English sometimes.",
-        definition: "to find something difficult and try hard to do it",
-      },
-      {
-        text: "improve",
-        meaning: "提高；改善",
-        phrase: "improve my speaking",
-        example: "I want to improve my speaking before I go abroad.",
-        definition: "to become better or make something better",
-      },
-      {
-        text: "confident",
-        meaning: "自信的",
-        phrase: "feel confident",
-        example: "I feel more confident when I practise every day.",
-        definition: "feeling sure that you can do something",
-      },
-      {
-        text: "confusing",
-        meaning: "令人困惑的",
-        phrase: "a confusing sentence",
-        example: "This sentence is confusing to me.",
-        definition: "not easy to understand",
-      },
-      {
-        text: "basically",
-        meaning: "基本上；简单来说",
-        phrase: "basically means",
-        example: "It basically means you need to practise more.",
-        definition: "used when you explain the main idea simply",
-      },
-    ],
-  },
-  {
-    id: "ielts-core",
-    name: "雅思基础核心",
-    level: "备考",
-    description: "阅读、听力和写作中常见的基础学术词。",
-    words: [
-      {
-        text: "benefit",
-        meaning: "好处；受益",
-        phrase: "the main benefit",
-        example: "The main benefit is that students become more independent.",
-        definition: "a good or useful result",
-      },
-      {
-        text: "challenge",
-        meaning: "挑战",
-        phrase: "face a challenge",
-        example: "Living abroad can be a challenge at first.",
-        definition: "something difficult that tests your ability",
-      },
-      {
-        text: "require",
-        meaning: "需要；要求",
-        phrase: "require attention",
-        example: "Academic writing requires careful planning.",
-        definition: "to need something or make something necessary",
-      },
-      {
-        text: "develop",
-        meaning: "发展；培养",
-        phrase: "develop a habit",
-        example: "You can develop a habit by studying a little every day.",
-        definition: "to grow or make something grow over time",
-      },
-      {
-        text: "increase",
-        meaning: "增加",
-        phrase: "increase gradually",
-        example: "Your vocabulary will increase gradually.",
-        definition: "to become bigger in number, amount, or level",
-      },
-      {
-        text: "reduce",
-        meaning: "减少",
-        phrase: "reduce stress",
-        example: "A clear plan can reduce stress.",
-        definition: "to make something smaller or less",
-      },
-      {
-        text: "evidence",
-        meaning: "证据",
-        phrase: "supporting evidence",
-        example: "Use evidence to support your opinion.",
-        definition: "facts or information that show something is true",
-      },
-      {
-        text: "impact",
-        meaning: "影响",
-        phrase: "have an impact on",
-        example: "Sleep has an impact on learning.",
-        definition: "the effect that something has on someone or something",
-      },
-      {
-        text: "significant",
-        meaning: "重要的；显著的",
-        phrase: "a significant difference",
-        example: "Small daily practice can make a significant difference.",
-        definition: "important or large enough to notice",
-      },
-      {
-        text: "approach",
-        meaning: "方法；处理方式",
-        phrase: "a practical approach",
-        example: "This is a practical approach to vocabulary learning.",
-        definition: "a way of doing or thinking about something",
-      },
-    ],
-  },
-];
+let wordBanks = [];
 
 const toDateKey = (date) => {
   const year = date.getFullYear();
@@ -357,12 +45,6 @@ const parseDateKey = (dateString) => {
 
 const nowDate = () => toDateKey(new Date());
 
-const addDays = (dateString, days) => {
-  const date = parseDateKey(dateString);
-  date.setDate(date.getDate() + days);
-  return toDateKey(date);
-};
-
 const formatDate = (dateString) => {
   const date = parseDateKey(dateString);
   return date.toLocaleDateString("zh-CN", {
@@ -371,8 +53,6 @@ const formatDate = (dateString) => {
     weekday: "short",
   });
 };
-
-const uid = () => `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 const reviewSteps = ["sound", "example", "definition", "speak", "rate"];
 
@@ -398,32 +78,137 @@ const createInitialState = () => {
   };
 };
 
-let state = loadState();
+let state = createInitialState();
 let activeReviewIndex = 0;
 let activeReviewId = null;
 let reviewStep = "sound";
 let chineseVisible = false;
 let lastAutoSpokenReviewId = null;
+let isBootstrapped = false;
+let isPublicDemo = false;
 
-function loadState() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) return createInitialState();
+const api = {
+  getBootstrap: () => requestJSON("/api/bootstrap"),
+  importLocalState: (localState) =>
+    requestJSON("/api/import-local-state", {
+      method: "POST",
+      body: JSON.stringify({ state: localState }),
+    }),
+  reset: () =>
+    requestJSON("/api/reset", {
+      method: "POST",
+    }),
+  updateTask: (taskId, done) =>
+    requestJSON(`/api/tasks/${encodeURIComponent(taskId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ done }),
+    }),
+  importBank: (bankId) =>
+    requestJSON(`/api/word-banks/${encodeURIComponent(bankId)}/import`, {
+      method: "POST",
+    }),
+  saveBankWord: (bankId, payload) =>
+    requestJSON(`/api/word-banks/${encodeURIComponent(bankId)}/words`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  reviewWord: (wordId, result) =>
+    requestJSON(`/api/reviews/${encodeURIComponent(wordId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ result }),
+    }),
+  saveListening: (payload) =>
+    requestJSON("/api/listening", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  saveJournal: (content) =>
+    requestJSON("/api/journal/today", {
+      method: "PUT",
+      body: JSON.stringify({ content }),
+    }),
+};
+
+async function requestJSON(path, options = {}) {
+  const response = await fetch(path, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : {};
+  if (!response.ok) {
+    throw new Error(data.error || "请求失败");
+  }
+  return data;
+}
+
+function getLocalStateForMigration() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return null;
 
   try {
-    const parsed = JSON.parse(saved);
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
     return {
-      words: parsed.words || [],
-      listening: parsed.listening || [],
+      words: Array.isArray(parsed.words) ? parsed.words : [],
+      listening: Array.isArray(parsed.listening) ? parsed.listening : [],
       journals: parsed.journals || {},
       logs: parsed.logs || {},
     };
   } catch {
-    return createInitialState();
+    return null;
   }
 }
 
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+async function loadServerState() {
+  const bootstrap = await api.getBootstrap();
+  const localState = getLocalStateForMigration();
+  const alreadyMigrated = localStorage.getItem(MIGRATION_KEY);
+
+  if (!bootstrap.publicDemo && !bootstrap.hasStudyData && localState && !alreadyMigrated) {
+    try {
+      const imported = await api.importLocalState(localState);
+      localStorage.setItem(MIGRATION_KEY, new Date().toISOString());
+      applyBootstrap(imported);
+      return;
+    } catch (error) {
+      console.warn("Local state migration skipped:", error);
+    }
+  }
+
+  applyBootstrap(bootstrap);
+}
+
+function applyBootstrap(bootstrap) {
+  isPublicDemo = Boolean(bootstrap.publicDemo);
+  wordBanks = bootstrap.wordBanks || wordBanks;
+  state = bootstrap.state || createInitialState();
+  hydrateWordsFromBanks();
+  ensureTodayLog();
+}
+
+async function applyMutation(promise) {
+  const next = await promise;
+  applyBootstrap(next);
+  render();
+}
+
+function handleApiError(error) {
+  console.error(error);
+  window.alert(`保存失败：${error.message}`);
+  void loadServerState().then(render).catch(console.error);
+}
+
+function resetReviewUi() {
+  activeReviewIndex = 0;
+  activeReviewId = null;
+  reviewStep = "sound";
+  chineseVisible = false;
+  lastAutoSpokenReviewId = null;
 }
 
 function ensureTodayLog() {
@@ -482,16 +267,12 @@ function getDefinition(word) {
 }
 
 function hydrateWordsFromBanks() {
-  let changed = false;
-
   state.words = state.words.map((word) => {
     const match = getBankWordMatch(word);
     if (!match) {
-      if (word.definition) return word;
-      changed = true;
       return {
         ...word,
-        definition: getDefinition(word),
+        definition: word.definition || getDefinition(word),
       };
     }
 
@@ -500,19 +281,15 @@ function hydrateWordsFromBanks() {
     fields.forEach((field) => {
       if (!nextWord[field] && match.bankWord[field]) {
         nextWord[field] = match.bankWord[field];
-        changed = true;
       }
     });
 
     if (!nextWord.bankId) {
       nextWord.bankId = match.bank.id;
-      changed = true;
     }
 
     return nextWord;
   });
-
-  if (changed) saveState();
 }
 
 function soundIcon() {
@@ -601,45 +378,32 @@ function getBankProgress(bank) {
   };
 }
 
-function importBankWords(bankId) {
-  const bank = getBankById(bankId);
-  if (!bank) return;
+async function importBankWords(bankId) {
+  resetReviewUi();
+  await applyMutation(api.importBank(bankId));
+}
 
-  const today = nowDate();
-  const existingWords = new Set(state.words.map((word) => normalizeWord(word.text)));
-  const wordsToAdd = bank.words
-    .filter((word) => !existingWords.has(normalizeWord(word.text)))
-    .slice(0, 10);
+async function saveBankWord(form) {
+  const data = new FormData(form);
+  const bankId = data.get("bankId");
 
-  if (!wordsToAdd.length) return;
+  const payload = {
+    text: data.get("text").trim(),
+    meaning: data.get("meaning").trim(),
+    phrase: data.get("phrase").trim(),
+    example: data.get("example").trim(),
+    definition: data.get("definition").trim(),
+  };
 
-  const newWords = wordsToAdd.map((word) => ({
-    id: uid(),
-    ...word,
-    mySentence: word.mySentence || "",
-    bankId: bank.id,
-    status: "learning",
-    reviewStage: 0,
-    nextReviewAt: today,
-    createdAt: today,
-  }));
-
-  state.words.unshift(...newWords);
-  getTodayTasks().words = true;
-  activeReviewIndex = 0;
-  activeReviewId = null;
-  reviewStep = "sound";
-  chineseVisible = false;
-  lastAutoSpokenReviewId = null;
-  saveState();
+  const next = await api.saveBankWord(bankId, payload);
+  form.reset();
+  form.elements.bankId.value = bankId;
+  applyBootstrap(next);
   render();
 }
 
-function markTask(taskId, done) {
-  const tasks = getTodayTasks();
-  tasks[taskId] = done;
-  saveState();
-  render();
+async function markTask(taskId, done) {
+  await applyMutation(api.updateTask(taskId, done));
 }
 
 function renderTasks() {
@@ -665,7 +429,7 @@ function renderTasks() {
 
   list.querySelectorAll("input[data-task]").forEach((input) => {
     input.addEventListener("change", (event) => {
-      markTask(event.target.dataset.task, event.target.checked);
+      void markTask(event.target.dataset.task, event.target.checked).catch(handleApiError);
     });
   });
 }
@@ -705,10 +469,15 @@ function renderBankList() {
   list.innerHTML = wordBanks
     .map((bank) => {
       const progress = getBankProgress(bank);
-      const percent = Math.round((progress.imported / progress.total) * 100);
+      const percent = progress.total ? Math.round((progress.imported / progress.total) * 100) : 0;
       const buttonText = progress.remaining
         ? `加入 ${Math.min(10, progress.remaining)} 个`
-        : "已全部加入";
+        : progress.total
+          ? "已全部加入"
+          : "先添加词";
+      const metaText = progress.total
+        ? `${progress.imported}/${progress.total} 已加入`
+        : "还没有词";
       const disabled = progress.remaining ? "" : "disabled";
 
       return `
@@ -724,7 +493,7 @@ function renderBankList() {
             <span style="width: ${percent}%"></span>
           </div>
           <div class="bank-meta">
-            <span>${progress.imported}/${progress.total} 已加入</span>
+            <span>${metaText}</span>
             <button class="primary-button" data-bank="${escapeAttribute(bank.id)}" ${disabled}>${buttonText}</button>
           </div>
         </article>
@@ -733,8 +502,26 @@ function renderBankList() {
     .join("");
 
   list.querySelectorAll("[data-bank]").forEach((button) => {
-    button.addEventListener("click", () => importBankWords(button.dataset.bank));
+    button.addEventListener("click", () => {
+      void importBankWords(button.dataset.bank).catch(handleApiError);
+    });
   });
+
+  renderWordBankOptions();
+}
+
+function renderWordBankOptions() {
+  const select = document.querySelector("#word-bank-select");
+  if (!select) return;
+
+  const currentValue = select.value || "custom";
+  select.innerHTML = wordBanks
+    .map((bank) => `<option value="${escapeAttribute(bank.id)}">${escapeHTML(bank.name)}</option>`)
+    .join("");
+
+  if (wordBanks.some((bank) => bank.id === currentValue)) {
+    select.value = currentValue;
+  }
 }
 
 function renderReviewProgress() {
@@ -909,7 +696,9 @@ function renderReview() {
   bindSoundButtons(reviewCard);
 
   reviewCard.querySelectorAll("[data-review]").forEach((button) => {
-    button.addEventListener("click", () => reviewWord(word.id, button.dataset.review));
+    button.addEventListener("click", () => {
+      void reviewWord(word.id, button.dataset.review).catch(handleApiError);
+    });
   });
 
   if (isWordsViewActive() && reviewStep === "sound" && lastAutoSpokenReviewId !== word.id) {
@@ -918,38 +707,9 @@ function renderReview() {
   }
 }
 
-function reviewWord(id, result) {
-  const intervals = [1, 3, 7, 14, 30];
-  const today = nowDate();
-  const word = state.words.find((item) => item.id === id);
-  if (!word) return;
-
-  if (result === "known") {
-    word.reviewStage = Math.min((word.reviewStage || 0) + 1, intervals.length - 1);
-    word.status = word.reviewStage >= 4 ? "known" : "learning";
-    word.nextReviewAt = addDays(today, intervals[word.reviewStage]);
-  }
-
-  if (result === "fuzzy") {
-    word.reviewStage = Math.max((word.reviewStage || 0), 1);
-    word.status = "learning";
-    word.nextReviewAt = addDays(today, 1);
-  }
-
-  if (result === "unknown") {
-    word.reviewStage = 0;
-    word.status = "learning";
-    word.nextReviewAt = addDays(today, 1);
-  }
-
-  getTodayTasks().review = true;
-  activeReviewIndex = 0;
-  activeReviewId = null;
-  reviewStep = "sound";
-  chineseVisible = false;
-  lastAutoSpokenReviewId = null;
-  saveState();
-  render();
+async function reviewWord(id, result) {
+  resetReviewUi();
+  await applyMutation(api.reviewWord(id, result));
 }
 
 function renderWordList() {
@@ -1087,7 +847,9 @@ function renderProgress() {
 }
 
 function render() {
+  if (!isBootstrapped) return;
   ensureTodayLog();
+  renderDemoState();
   renderTasks();
   renderTodayStats();
   renderBankList();
@@ -1096,6 +858,21 @@ function render() {
   renderListening();
   renderJournals();
   renderProgress();
+}
+
+function renderDemoState() {
+  document.body.classList.toggle("public-demo", isPublicDemo);
+
+  const banner = document.querySelector("#demo-banner");
+  if (banner) {
+    banner.hidden = !isPublicDemo;
+  }
+
+  const resetButton = document.querySelector("#reset-demo");
+  if (resetButton) {
+    resetButton.textContent = isPublicDemo ? "重置演示数据" : "重置数据";
+    resetButton.title = isPublicDemo ? "恢复默认演示数据" : "清空本地学习数据";
+  }
 }
 
 function escapeHTML(value) {
@@ -1127,72 +904,81 @@ function bindNavigation() {
 }
 
 function bindForms() {
+  document.querySelector("#word-bank-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    void saveBankWord(event.currentTarget).catch(handleApiError);
+  });
+
   document.querySelector("#listening-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
 
-    state.listening.unshift({
-      id: uid(),
-      title: data.get("title").trim(),
-      url: data.get("url").trim(),
-      minutes: Number(data.get("minutes")),
-      difficulty: data.get("difficulty"),
-      note: data.get("note").trim(),
-      createdAt: nowDate(),
-    });
-
-    getTodayTasks().listening = true;
-    form.reset();
-    form.elements.minutes.value = 15;
-    form.elements.difficulty.value = "medium";
-    saveState();
-    render();
+    void api
+      .saveListening({
+        title: data.get("title").trim(),
+        url: data.get("url").trim(),
+        minutes: Number(data.get("minutes")),
+        difficulty: data.get("difficulty"),
+        note: data.get("note").trim(),
+      })
+      .then((next) => {
+        form.reset();
+        form.elements.minutes.value = 15;
+        form.elements.difficulty.value = "medium";
+        applyBootstrap(next);
+        render();
+      })
+      .catch(handleApiError);
   });
 
   document.querySelector("#journal-form").addEventListener("submit", (event) => {
     event.preventDefault();
     const form = event.currentTarget;
     const content = form.elements.journal.value.trim();
-    const today = nowDate();
 
-    if (content) {
-      state.journals[today] = content;
-      getTodayTasks().writing = true;
-    } else {
-      delete state.journals[today];
-      getTodayTasks().writing = false;
-    }
-
-    saveState();
-    render();
+    void applyMutation(api.saveJournal(content)).catch(handleApiError);
   });
 }
 
 function bindQuickActions() {
   document.querySelector("#minimum-mode").addEventListener("click", () => {
-    const tasks = getTodayTasks();
-    tasks.review = true;
-    saveState();
-    render();
+    void applyMutation(api.updateTask("review", true)).catch(handleApiError);
   });
 
   document.querySelector("#reset-demo").addEventListener("click", () => {
     const confirmed = window.confirm("确定要清空本地学习数据吗？");
     if (!confirmed) return;
-    state = createInitialState();
-    activeReviewIndex = 0;
-    activeReviewId = null;
-    reviewStep = "sound";
-    chineseVisible = false;
-    lastAutoSpokenReviewId = null;
-    saveState();
-    render();
+
+    resetReviewUi();
+    localStorage.setItem(MIGRATION_KEY, new Date().toISOString());
+    void applyMutation(api.reset()).catch(handleApiError);
   });
 }
 
-hydrateWordsFromBanks();
-bindNavigation();
-bindForms();
-bindQuickActions();
-render();
+function showBootstrapError(error) {
+  console.error(error);
+  const workspace = document.querySelector(".workspace");
+  workspace.innerHTML = `
+    <section class="task-board">
+      <h1>后端连接失败</h1>
+      <p class="empty-state">请确认本地服务正在运行，然后刷新页面。错误：${escapeHTML(error.message)}</p>
+    </section>
+  `;
+}
+
+async function initialize() {
+  bindNavigation();
+  bindForms();
+  bindQuickActions();
+
+  try {
+    await loadServerState();
+    isBootstrapped = true;
+    render();
+  } catch (error) {
+    showBootstrapError(error);
+  }
+}
+
+void initialize();

@@ -27,6 +27,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -105,6 +106,31 @@ button {
 .workspace {
   padding: 32px;
   overflow: hidden;
+}
+
+.demo-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 13px 16px;
+  border: 1px solid rgba(47, 111, 159, 0.25);
+  border-radius: 8px;
+  background: #e7f0f7;
+  color: var(--blue-dark);
+}
+
+.demo-banner[hidden] {
+  display: none;
+}
+
+.demo-banner strong {
+  flex: 0 0 auto;
+}
+
+.demo-banner span {
+  color: #31566e;
+  line-height: 1.5;
 }
 
 .view {
@@ -405,6 +431,16 @@ h2 {
   line-height: 1.6;
 }
 
+.word-bank-editor {
+  display: grid;
+  gap: 2px;
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
 .stacked-form label,
 .segmented legend {
   display: grid;
@@ -414,6 +450,7 @@ h2 {
 }
 
 input,
+select,
 textarea {
   width: 100%;
   border: 1px solid #d7d0c4;
@@ -430,9 +467,16 @@ textarea {
 }
 
 input:focus,
+select:focus,
 textarea:focus {
   border-color: var(--blue);
   box-shadow: 0 0 0 3px rgba(47, 111, 159, 0.14);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .segmented {
@@ -871,6 +915,7 @@ textarea:focus {
   .review-actions,
   .week-grid,
   .segmented,
+  .form-grid,
   .bank-meta,
   .bank-card header,
   .speak-stack > div,
