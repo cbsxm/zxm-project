@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>登录 | English Study</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="auth-page">
+    <main class="auth-shell">
+      <section class="auth-visual" aria-label="English Study">
+        <div class="brand">
+          <div class="brand-mark">E</div>
+          <div>
+            <strong>English Study</strong>
+            <span>每天做一点</span>
+          </div>
+        </div>
+        <div class="auth-visual-copy">
+          <p class="eyebrow">Account</p>
+          <h1>登录后开始今天的英语练习</h1>
+          <p>你的单词、听力、输出和进度会按账号独立保存。</p>
+        </div>
+        <img
+          src="https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=1000&q=80"
+          alt="书桌上的英语学习资料"
+        />
+      </section>
+
+      <section class="auth-card" aria-labelledby="auth-title">
+        <div class="auth-page-heading">
+          <p class="eyebrow">Welcome</p>
+          <h2 id="auth-title">进入学习空间</h2>
+        </div>
+
+        <p class="auth-message" id="auth-message" role="status"></p>
+
+        <div class="auth-page-forms">
+          <form id="login-form" class="auth-page-form stacked-form">
+            <div>
+              <p class="eyebrow">Login</p>
+              <h3>已有账号</h3>
+            </div>
+            <label>
+              邮箱
+              <input name="email" type="email" autocomplete="email" required />
+            </label>
+            <label>
+              密码
+              <input name="password" type="password" autocomplete="current-password" required />
+            </label>
+            <button class="primary-button" type="submit">登录</button>
+          </form>
+
+          <form id="register-form" class="auth-page-form stacked-form">
+            <div>
+              <p class="eyebrow">Register</p>
+              <h3>创建账号</h3>
+            </div>
+            <label>
+              昵称
+              <input name="displayName" autocomplete="name" placeholder="My English Plan" />
+            </label>
+            <label>
+              邮箱
+              <input name="email" type="email" autocomplete="email" required />
+            </label>
+            <label>
+              密码
+              <input name="password" type="password" autocomplete="new-password" minlength="8" required />
+            </label>
+            <button class="primary-button" type="submit">注册并开始</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <script src="./auth.js"></script>
+  </body>
+</html>

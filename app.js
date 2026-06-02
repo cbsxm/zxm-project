@@ -30,6 +30,7 @@ const taskMeta = [
 ];
 
 let wordBanks = [];
+let studyGoals = [];
 
 const toDateKey = (date) => {
   const year = date.getFullYear();
@@ -178,7 +179,9 @@ const createInitialState = () => {
   return {
     words: [],
     listening: [],
+    speakingAttempts: [],
     journals: {},
+    writingFeedback: {},
     logs: {
       [today]: {
         tasks: {},
@@ -187,7 +190,23 @@ const createInitialState = () => {
   };
 };
 
+const createInitialInsights = () => ({
+  dailyPlan: {
+    reviewWords: 5,
+    newWords: 10,
+    listeningMinutes: 15,
+    writingSentences: 3,
+    finishedTasks: 0,
+    totalWords: 0,
+    dueWords: 0,
+    focus: "先从英国留学词库加入 10 个词",
+    reason: "系统会根据你的复习记录自动调整今天的学习重点。",
+  },
+  troubleWords: [],
+});
+
 let state = createInitialState();
+let insights = createInitialInsights();
 let activeReviewIndex = 0;
 let activeReviewId = null;
 let reviewStep = "sound";
@@ -206,11 +225,35 @@ let progressPracticeStep = "sound";
 let progressChineseVisible = false;
 let progressPracticeCompleted = false;
 let lastAutoSpokenProgressId = null;
+let activeSpeechRecognizer = null;
+const speakingDrafts = {};
 let isBootstrapped = false;
 let isPublicDemo = false;
+let isAuthenticated = false;
+let currentUser = null;
+let editingWordId = null;
+const wordFilters = {
+  search: "",
+  status: "all",
+  bankId: "all",
+};
 
 const api = {
   getBootstrap: () => requestJSON("/api/bootstrap"),
+  register: (payload) =>
+    requestJSON("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  login: (payload) =>
+    requestJSON("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  logout: () =>
+    requestJSON("/api/auth/logout", {
+      method: "POST",
+    }),
   importLocalState: (localState) =>
     requestJSON("/api/import-local-state", {
       method: "POST",
@@ -229,6 +272,10 @@ const api = {
     requestJSON(`/api/word-banks/${encodeURIComponent(bankId)}/import`, {
       method: "POST",
     }),
+  importStudyGoal: (goalId) =>
+    requestJSON(`/api/study-goals/${encodeURIComponent(goalId)}/import`, {
+      method: "POST",
+    }),
   saveBankWord: (bankId, payload) =>
     requestJSON(`/api/word-banks/${encodeURIComponent(bankId)}/words`, {
       method: "POST",
@@ -239,8 +286,23 @@ const api = {
       method: "PATCH",
       body: JSON.stringify({ result }),
     }),
+  updateWord: (wordId, payload) =>
+    requestJSON(`/api/words/${encodeURIComponent(wordId)}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    }),
+  deleteWord: (wordId) =>
+    requestJSON(`/api/words/${encodeURIComponent(wordId)}`, {
+      method: "DELETE",
+    }),
+  exportData: () => requestJSON("/api/export"),
   saveListening: (payload) =>
     requestJSON("/api/listening", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  saveSpeakingAttempt: (payload) =>
+    requestJSON("/api/speaking-attempts", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
@@ -253,6 +315,7 @@ const api = {
 
 async function requestJSON(path, options = {}) {
   const response = await fetch(path, {
+    credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
@@ -291,7 +354,13 @@ async function loadServerState() {
   const localState = getLocalStateForMigration();
   const alreadyMigrated = localStorage.getItem(MIGRATION_KEY);
 
-  if (!bootstrap.publicDemo && !bootstrap.hasStudyData && localState && !alreadyMigrated) {
+  if (
+    bootstrap.authenticated &&
+    !bootstrap.publicDemo &&
+    !bootstrap.hasStudyData &&
+    localState &&
+    !alreadyMigrated
+  ) {
     try {
       const imported = await api.importLocalState(localState);
       localStorage.setItem(MIGRATION_KEY, new Date().toISOString());
@@ -307,8 +376,12 @@ async function loadServerState() {
 
 function applyBootstrap(bootstrap) {
   isPublicDemo = Boolean(bootstrap.publicDemo);
+  isAuthenticated = Boolean(bootstrap.authenticated || bootstrap.publicDemo);
+  currentUser = bootstrap.user || null;
   wordBanks = bootstrap.wordBanks || wordBanks;
+  studyGoals = bootstrap.studyGoals || studyGoals;
   state = bootstrap.state || createInitialState();
+  insights = bootstrap.insights || createInitialInsights();
   hydrateWordsFromBanks();
   ensureTodayLog();
 }
@@ -363,8 +436,12 @@ function getBankById(bankId) {
   return wordBanks.find((bank) => bank.id === bankId);
 }
 
+function getGoalByBankId(bankId) {
+  return studyGoals.find((goal) => goal.bankId === bankId);
+}
+
 function getWordSourceName(word) {
-  return getBankById(word.bankId)?.name || "自定义词";
+  return getBankById(word.bankId)?.name || getGoalByBankId(word.bankId)?.name || "自定义词";
 }
 
 function getBankWordMatch(word) {
@@ -379,6 +456,11 @@ function getBankWordMatch(word) {
   for (const bank of wordBanks) {
     const bankWord = bank.words.find((item) => normalizeWord(item.text) === text);
     if (bankWord) return { bank, bankWord };
+  }
+
+  for (const goal of studyGoals) {
+    const goalWord = goal.words.find((item) => normalizeWord(item.text) === text);
+    if (goalWord) return { bank: goal, bankWord: goalWord };
   }
 
   return null;
@@ -514,6 +596,175 @@ function bindSoundButtons(container) {
   });
 }
 
+function getSpeechRecognitionConstructor() {
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+
+function normalizeSpeechText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9'\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function levenshteinDistance(a, b) {
+  const left = normalizeSpeechText(a);
+  const right = normalizeSpeechText(b);
+  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+
+  for (let i = 1; i <= left.length; i += 1) {
+    const current = [i];
+    for (let j = 1; j <= right.length; j += 1) {
+      current[j] =
+        left[i - 1] === right[j - 1]
+          ? previous[j - 1]
+          : Math.min(previous[j - 1] + 1, previous[j] + 1, current[j - 1] + 1);
+    }
+    previous.splice(0, previous.length, ...current);
+  }
+
+  return previous[right.length] || 0;
+}
+
+function speakingScore(targetText, transcript) {
+  const target = normalizeSpeechText(targetText);
+  const spoken = normalizeSpeechText(transcript);
+  if (!target || !spoken) return 0;
+
+  const distance = levenshteinDistance(target, spoken);
+  const maxLength = Math.max(target.length, spoken.length, 1);
+  return Math.max(0, Math.min(100, Math.round((1 - distance / maxLength) * 100)));
+}
+
+function getSpeakingDraft(key) {
+  speakingDrafts[key] ??= { transcript: "", score: 0, status: "" };
+  return speakingDrafts[key];
+}
+
+function renderSpeakingPractice({ key, targetText, practiceType }) {
+  const draft = getSpeakingDraft(key);
+  const supportsSpeech = Boolean(getSpeechRecognitionConstructor());
+  const status = draft.status || (supportsSpeech ? "点击开始，读完后会自动评分。" : "当前浏览器不支持语音识别，可以手动输入跟读文本评分。");
+  return `
+    <div class="speech-practice" data-speech-key="${escapeAttribute(key)}" data-practice-type="${escapeAttribute(practiceType)}">
+      <div class="speech-target">
+        <span>跟读目标</span>
+        <p>${escapeHTML(targetText)}</p>
+      </div>
+      <div class="speech-controls">
+        <button class="primary-button" type="button" data-start-speech="${escapeAttribute(key)}" ${supportsSpeech ? "" : "disabled"}>
+          开始识别
+        </button>
+        <button class="ghost-button" type="button" data-save-speech="${escapeAttribute(key)}">
+          保存评分
+        </button>
+        <span class="speech-score">${Number(draft.score || 0)} 分</span>
+      </div>
+      <textarea
+        class="speech-transcript"
+        rows="3"
+        data-speech-transcript="${escapeAttribute(key)}"
+        placeholder="识别结果会出现在这里，也可以手动输入"
+      >${escapeHTML(draft.transcript)}</textarea>
+      <p class="speech-status">${escapeHTML(status)}</p>
+    </div>
+  `;
+}
+
+function bindSpeakingPractice(container, getTargetText) {
+  container.querySelectorAll("[data-speech-transcript]").forEach((textarea) => {
+    textarea.addEventListener("input", (event) => {
+      const key = event.target.dataset.speechTranscript;
+      const draft = getSpeakingDraft(key);
+      const targetText = getTargetText(key);
+      draft.transcript = event.target.value;
+      draft.score = speakingScore(targetText, draft.transcript);
+      draft.status = draft.transcript ? "已根据文本计算相似度。" : "";
+      const panel = event.target.closest(".speech-practice");
+      panel.querySelector(".speech-score").textContent = `${draft.score} 分`;
+      panel.querySelector(".speech-status").textContent = draft.status || "可以继续调整文本。";
+    });
+  });
+
+  container.querySelectorAll("[data-start-speech]").forEach((button) => {
+    button.addEventListener("click", () => {
+      startSpeechRecognition(button.dataset.startSpeech, getTargetText).catch(handleApiError);
+    });
+  });
+
+  container.querySelectorAll("[data-save-speech]").forEach((button) => {
+    button.addEventListener("click", () => {
+      saveSpeechPractice(button.dataset.saveSpeech, getTargetText).catch(handleApiError);
+    });
+  });
+}
+
+async function startSpeechRecognition(key, getTargetText) {
+  const Recognition = getSpeechRecognitionConstructor();
+  const draft = getSpeakingDraft(key);
+  if (!Recognition) {
+    draft.status = "当前浏览器不支持语音识别，可以手动输入文本评分。";
+    render();
+    return;
+  }
+
+  if (activeSpeechRecognizer) {
+    activeSpeechRecognizer.stop();
+  }
+
+  const recognition = new Recognition();
+  activeSpeechRecognizer = recognition;
+  recognition.lang = "en-GB";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  draft.status = "正在听你跟读...";
+  render();
+
+  recognition.onresult = (event) => {
+    const transcript = event.results?.[0]?.[0]?.transcript || "";
+    draft.transcript = transcript;
+    draft.score = speakingScore(getTargetText(key), transcript);
+    draft.status = transcript ? "识别完成，可以保存评分。" : "没有识别到清晰文本。";
+    activeSpeechRecognizer = null;
+    render();
+  };
+  recognition.onerror = () => {
+    draft.status = "语音识别失败，可以再试一次或手动输入。";
+    activeSpeechRecognizer = null;
+    render();
+  };
+  recognition.onend = () => {
+    if (activeSpeechRecognizer === recognition) {
+      activeSpeechRecognizer = null;
+    }
+  };
+  recognition.start();
+}
+
+async function saveSpeechPractice(key, getTargetText) {
+  const draft = getSpeakingDraft(key);
+  const targetText = getTargetText(key);
+  if (!targetText) return;
+  if (!draft.transcript.trim()) {
+    window.alert("先读一遍，或者手动输入你读出的英文。");
+    return;
+  }
+
+  const container = document.querySelector(`[data-speech-key="${CSS.escape(key)}"]`);
+  const practiceType = container?.dataset.practiceType || "custom";
+  draft.score = speakingScore(targetText, draft.transcript);
+  draft.status = "已保存跟读评分。";
+  await applyMutation(
+    api.saveSpeakingAttempt({
+      practiceType,
+      targetText,
+      transcript: draft.transcript,
+      score: draft.score,
+    })
+  );
+}
+
 function getBankProgress(bank) {
   const existingWords = new Set(state.words.map((word) => normalizeWord(word.text)));
   const imported = bank.words.filter((word) => existingWords.has(normalizeWord(word.text))).length;
@@ -527,6 +778,11 @@ function getBankProgress(bank) {
 async function importBankWords(bankId) {
   resetReviewUi();
   await applyMutation(api.importBank(bankId));
+}
+
+async function importStudyGoalWords(goalId) {
+  resetReviewUi();
+  await applyMutation(api.importStudyGoal(goalId));
 }
 
 async function saveBankWord(form) {
@@ -546,6 +802,42 @@ async function saveBankWord(form) {
   form.elements.bankId.value = bankId;
   applyBootstrap(next);
   render();
+}
+
+async function submitAuthForm(form, action) {
+  const data = new FormData(form);
+  const payload = {
+    email: String(data.get("email") || "").trim(),
+    password: String(data.get("password") || ""),
+    displayName: String(data.get("displayName") || "").trim(),
+  };
+
+  const next = action === "register" ? await api.register(payload) : await api.login(payload);
+  form.reset();
+  applyBootstrap(next);
+  render();
+}
+
+async function logout() {
+  await api.logout();
+  resetReviewUi();
+  window.location.assign("./auth.html?loggedOut=1");
+}
+
+async function exportStudyData() {
+  const data = await api.exportData();
+  const safeUser = (data.user?.email || "english-study")
+    .replace(/[^a-z0-9._-]+/gi, "-")
+    .replace(/^-+|-+$/g, "");
+  const filename = `${safeUser || "english-study"}-${nowDate()}-backup.json`;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
 }
 
 async function markTask(taskId, done) {
@@ -708,17 +1000,75 @@ function renderBankList() {
   renderWordBankOptions();
 }
 
-function renderWordBankOptions() {
-  const select = document.querySelector("#word-bank-select");
-  if (!select) return;
+function renderGoalList() {
+  const list = document.querySelector("#goal-list");
+  if (!list) return;
 
-  const currentValue = select.value || "custom";
-  select.innerHTML = wordBanks
-    .map((bank) => `<option value="${escapeAttribute(bank.id)}">${escapeHTML(bank.name)}</option>`)
+  if (!studyGoals.length) {
+    list.innerHTML = `<p class="empty-state">还没有目标词库。</p>`;
+    return;
+  }
+
+  list.innerHTML = studyGoals
+    .map((goal) => {
+      const remaining = Number(goal.remaining || 0);
+      const imported = Number(goal.imported || 0);
+      const total = Number(goal.total || goal.words.length || 0);
+      const preview = goal.words
+        .slice(0, 4)
+        .map((word) => `<span>${escapeHTML(word.text)}</span>`)
+        .join("");
+      const buttonText = remaining ? `生成 ${Math.min(10, remaining)} 个词` : "已全部加入";
+      return `
+        <article class="goal-card">
+          <header>
+            <div>
+              <strong>${escapeHTML(goal.name)}</strong>
+              <p>${escapeHTML(goal.description)}</p>
+            </div>
+            <span class="pill">${escapeHTML(goal.level)}</span>
+          </header>
+          <div class="goal-preview">${preview}</div>
+          <div class="bank-meta">
+            <span>${imported}/${total} 已加入</span>
+            <button class="primary-button" data-study-goal="${escapeAttribute(goal.id)}" ${remaining ? "" : "disabled"}>
+              ${buttonText}
+            </button>
+          </div>
+        </article>
+      `;
+    })
     .join("");
 
-  if (wordBanks.some((bank) => bank.id === currentValue)) {
-    select.value = currentValue;
+  list.querySelectorAll("[data-study-goal]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void importStudyGoalWords(button.dataset.studyGoal).catch(handleApiError);
+    });
+  });
+}
+
+function renderWordBankOptions() {
+  const select = document.querySelector("#word-bank-select");
+  const filter = document.querySelector("#word-bank-filter");
+
+  if (select) {
+    const currentValue = select.value || "custom";
+    select.innerHTML = wordBanks
+      .map((bank) => `<option value="${escapeAttribute(bank.id)}">${escapeHTML(bank.name)}</option>`)
+      .join("");
+
+    if (wordBanks.some((bank) => bank.id === currentValue)) {
+      select.value = currentValue;
+    }
+  }
+
+  if (filter) {
+    const currentValue = wordFilters.bankId;
+    filter.innerHTML = [
+      `<option value="all">全部词库</option>`,
+      ...wordBanks.map((bank) => `<option value="${escapeAttribute(bank.id)}">${escapeHTML(bank.name)}</option>`),
+    ].join("");
+    filter.value = wordBanks.some((bank) => bank.id === currentValue) ? currentValue : "all";
   }
 }
 
@@ -821,6 +1171,11 @@ function renderReviewStep(word) {
             ${soundButton(word, "example")}
           </div>
         </div>
+        ${renderSpeakingPractice({
+          key: `review-${word.id}`,
+          targetText: example,
+          practiceType: "review",
+        })}
         <button class="primary-button" type="button" data-next-step="rate">我已跟读</button>
       </section>
     `;
@@ -896,6 +1251,7 @@ function renderReview() {
   }
 
   bindSoundButtons(reviewCard);
+  bindSpeakingPractice(reviewCard, () => word.example || "I can use this word in a real sentence.");
 
   reviewCard.querySelectorAll("[data-review]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -916,15 +1272,30 @@ async function reviewWord(id, result) {
 
 function renderWordList() {
   const list = document.querySelector("#word-list");
-  const words = [...state.words].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const search = wordFilters.search.trim().toLowerCase();
+  const words = [...state.words]
+    .filter((word) => {
+      if (wordFilters.status !== "all" && word.status !== wordFilters.status) return false;
+      if (wordFilters.bankId !== "all" && word.bankId !== wordFilters.bankId) return false;
+      if (!search) return true;
+      return [word.text, word.meaning, word.phrase, word.example, word.definition, getWordSourceName(word)]
+        .join(" ")
+        .toLowerCase()
+        .includes(search);
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
-  if (!words.length) {
+  if (!state.words.length) {
     list.innerHTML = `<p class="empty-state">还没有在学单词。先从左侧选择一个词库，加入今天的 10 个词。</p>`;
     return;
   }
 
+  if (!words.length) {
+    list.innerHTML = `<p class="empty-state">没有找到符合条件的单词。</p>`;
+    return;
+  }
+
   list.innerHTML = words
-    .slice(0, 12)
     .map(
       (word) => `
         <article class="word-row">
@@ -937,12 +1308,76 @@ function renderWordList() {
           </header>
           <p>${escapeHTML(word.meaning)} · ${escapeHTML(getWordSourceName(word))} · 下次复习 ${escapeHTML(word.nextReviewAt)}</p>
           <p>${escapeHTML(word.phrase || word.example || "还没有补充语境")}</p>
+          <div class="word-actions">
+            <button class="ghost-button" type="button" data-edit-word="${escapeAttribute(word.id)}">编辑</button>
+            <button class="ghost-button danger" type="button" data-delete-word="${escapeAttribute(word.id)}">删除</button>
+          </div>
         </article>
       `
     )
     .join("");
 
   bindSoundButtons(list);
+  list.querySelectorAll("[data-edit-word]").forEach((button) => {
+    button.addEventListener("click", () => startWordEdit(button.dataset.editWord));
+  });
+  list.querySelectorAll("[data-delete-word]").forEach((button) => {
+    button.addEventListener("click", () => {
+      void deleteLearnedWord(button.dataset.deleteWord).catch(handleApiError);
+    });
+  });
+}
+
+function startWordEdit(wordId) {
+  const word = state.words.find((item) => item.id === wordId);
+  const form = document.querySelector("#word-edit-form");
+  if (!word || !form) return;
+
+  editingWordId = wordId;
+  form.hidden = false;
+  form.elements.id.value = word.id;
+  form.elements.text.value = word.text || "";
+  form.elements.meaning.value = word.meaning || "";
+  form.elements.phrase.value = word.phrase || "";
+  form.elements.example.value = word.example || "";
+  form.elements.definition.value = getDefinition(word) || "";
+  form.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function cancelWordEdit() {
+  const form = document.querySelector("#word-edit-form");
+  editingWordId = null;
+  if (!form) return;
+  form.reset();
+  form.hidden = true;
+}
+
+async function saveWordEdit(form) {
+  const data = new FormData(form);
+  const wordId = editingWordId || data.get("id");
+  if (!wordId) return;
+
+  await applyMutation(
+    api.updateWord(wordId, {
+      text: String(data.get("text") || "").trim(),
+      meaning: String(data.get("meaning") || "").trim(),
+      phrase: String(data.get("phrase") || "").trim(),
+      example: String(data.get("example") || "").trim(),
+      definition: String(data.get("definition") || "").trim(),
+    })
+  );
+  cancelWordEdit();
+}
+
+async function deleteLearnedWord(wordId) {
+  const word = state.words.find((item) => item.id === wordId);
+  const confirmed = window.confirm(`确定删除 ${word?.text || "这个单词"} 吗？`);
+  if (!confirmed) return;
+
+  if (editingWordId === wordId) {
+    cancelWordEdit();
+  }
+  await applyMutation(api.deleteWord(wordId));
 }
 
 function getPracticeLabel(step, finalLabel) {
@@ -1085,6 +1520,11 @@ function renderListeningPracticeStep(practice) {
             ${textSoundButton(practice.sentence, "播放听力句子")}
           </div>
         </div>
+        ${renderSpeakingPractice({
+          key: `listening-${practice.id}`,
+          targetText: practice.sentence,
+          practiceType: "listening",
+        })}
         <button class="primary-button" type="button" data-next-step="rate">我已跟读</button>
       </section>
     `;
@@ -1138,6 +1578,7 @@ function renderListeningPractice() {
 
   bindPracticeSwitcher(container);
   bindSoundButtons(container);
+  bindSpeakingPractice(container, () => practice.sentence);
 
   if (
     isViewActive("listening") &&
@@ -1240,6 +1681,11 @@ function renderOutputPracticeStep(practice) {
             ${textSoundButton(practice.model, "播放输出例句")}
           </div>
         </div>
+        ${renderSpeakingPractice({
+          key: `output-${practice.id}`,
+          targetText: practice.model,
+          practiceType: "output",
+        })}
         <button class="primary-button" type="button" data-next-step="rate">我已跟读</button>
       </section>
     `;
@@ -1298,6 +1744,7 @@ function renderOutputPractice() {
 
   bindPracticeSwitcher(container);
   bindSoundButtons(container);
+  bindSpeakingPractice(container, () => practice.model);
 
   if (
     isViewActive("output") &&
@@ -1405,6 +1852,11 @@ function renderProgressPracticeStep(practice) {
             ${textSoundButton(practice.sentence, "播放今日复盘")}
           </div>
         </div>
+        ${renderSpeakingPractice({
+          key: `progress-${practice.id}`,
+          targetText: practice.sentence,
+          practiceType: "progress",
+        })}
         <button class="primary-button" type="button" data-next-step="rate">我已跟读</button>
       </section>
     `;
@@ -1452,6 +1904,7 @@ function renderProgressPractice() {
   });
 
   bindSoundButtons(container);
+  bindSpeakingPractice(container, () => practice.sentence);
 
   if (
     isViewActive("progress") &&
@@ -1515,6 +1968,50 @@ function renderListening() {
   bindSoundButtons(list);
 }
 
+function renderWritingFeedback(feedback) {
+  if (!feedback) {
+    return "";
+  }
+
+  const strengths = Array.isArray(feedback.strengths) ? feedback.strengths : [];
+  const fixes = Array.isArray(feedback.fixes) ? feedback.fixes : [];
+  return `
+    <div class="writing-feedback">
+      <header>
+        <div>
+          <p class="eyebrow">Writing feedback</p>
+          <strong>${Number(feedback.score || 0)}/5 · ${escapeHTML(feedback.summary)}</strong>
+        </div>
+        <span class="pill">${feedback.engine === "local-rules-v1" ? "基础反馈" : "AI 批改"}</span>
+      </header>
+      ${
+        strengths.length
+          ? `<div class="feedback-block"><span>做得好</span>${strengths
+              .map((item) => `<p>${escapeHTML(item)}</p>`)
+              .join("")}</div>`
+          : ""
+      }
+      ${
+        fixes.length
+          ? `<div class="feedback-block"><span>可以改</span>${fixes
+              .map(
+                (item) => `
+                  <p><strong>${escapeHTML(item.issue)}</strong> ${escapeHTML(item.suggestion)}</p>
+                  <p class="feedback-example">${escapeHTML(item.example)}</p>
+                `
+              )
+              .join("")}</div>`
+          : ""
+      }
+      ${
+        feedback.suggestedText
+          ? `<div class="feedback-block"><span>轻量修正版</span><p>${escapeHTML(feedback.suggestedText)}</p></div>`
+          : ""
+      }
+    </div>
+  `;
+}
+
 function renderJournals() {
   const list = document.querySelector("#journal-list");
   const countNode = document.querySelector("#journal-count");
@@ -1542,6 +2039,7 @@ function renderJournals() {
             <p>${escapeHTML(content)}</p>
             ${textSoundButton(content, "播放英文输出")}
           </div>
+          ${renderWritingFeedback(state.writingFeedback?.[date])}
         </article>
       `
     )
@@ -1554,11 +2052,20 @@ function renderProgress() {
   const totalMinutes = state.listening.reduce((sum, item) => sum + Number(item.minutes || 0), 0);
   const knownWords = state.words.filter((word) => word.status === "known").length;
   const journalCount = Object.keys(state.journals).length;
+  const speakingAttempts = Array.isArray(state.speakingAttempts) ? state.speakingAttempts : [];
+  const speakingScores = speakingAttempts
+    .map((item) => Number(item.score || 0))
+    .filter((score) => score > 0);
+  const averageSpeakingScore = speakingScores.length
+    ? Math.round(speakingScores.reduce((sum, score) => sum + score, 0) / speakingScores.length)
+    : 0;
 
   document.querySelector("#total-words").textContent = state.words.length;
   document.querySelector("#known-words").textContent = knownWords;
   document.querySelector("#total-minutes").textContent = totalMinutes;
   document.querySelector("#total-journals").textContent = journalCount;
+  document.querySelector("#total-speaking").textContent = speakingAttempts.length;
+  document.querySelector("#average-speaking").textContent = averageSpeakingScore;
 
   const weekGrid = document.querySelector("#week-grid");
   const today = parseDateKey(nowDate());
@@ -1586,14 +2093,71 @@ function renderProgress() {
     .join("");
 }
 
+function renderInsights() {
+  const planNode = document.querySelector("#daily-plan");
+  const troubleNode = document.querySelector("#trouble-list");
+  const focusNode = document.querySelector("#plan-focus");
+  if (!planNode || !troubleNode || !focusNode) return;
+
+  const plan = insights.dailyPlan || createInitialInsights().dailyPlan;
+  focusNode.textContent = plan.finishedTasks >= 5 ? "今日已完成" : "今日重点";
+
+  planNode.innerHTML = `
+    <div>
+      <p class="eyebrow">Today plan</p>
+      <h3>${escapeHTML(plan.focus)}</h3>
+      <p>${escapeHTML(plan.reason)}</p>
+    </div>
+    <div class="plan-list">
+      <span><strong>${Number(plan.reviewWords || 0)}</strong> 个复习词</span>
+      <span><strong>${Number(plan.newWords || 0)}</strong> 个新词</span>
+      <span><strong>${Number(plan.listeningMinutes || 0)}</strong> 分钟听力</span>
+      <span><strong>${Number(plan.writingSentences || 0)}</strong> 句英文输出</span>
+    </div>
+  `;
+
+  if (!insights.troubleWords?.length) {
+    troubleNode.innerHTML = `
+      <article class="trouble-row empty">
+        <strong>还没有易忘词</strong>
+        <p>当你在复习里选择“模糊”或“不认识”后，这里会自动形成错词本。</p>
+      </article>
+    `;
+    return;
+  }
+
+  troubleNode.innerHTML = insights.troubleWords
+    .map(
+      (word) => `
+        <article class="trouble-row">
+          <header>
+            <div class="word-title">
+              <strong>${escapeHTML(word.text)}</strong>
+              ${soundButton(word)}
+            </div>
+            <span class="pill">错词分 ${Number(word.troubleScore || 0)}</span>
+          </header>
+          <p>${escapeHTML(word.meaning)} · 模糊 ${Number(word.fuzzyCount || 0)} 次 · 不认识 ${Number(word.unknownCount || 0)} 次</p>
+          <p>下次复习 ${escapeHTML(word.nextReviewAt)} · ${escapeHTML(word.phrase || word.example || "补一个自己的例句会更稳")}</p>
+        </article>
+      `
+    )
+    .join("");
+
+  bindSoundButtons(troubleNode);
+}
+
 function render() {
   if (!isBootstrapped) return;
   ensureTodayLog();
   renderDemoState();
+  renderAuthState();
+  if (!isAuthenticated) return;
   renderTasks();
   renderTodayStats();
   renderTodayFlow();
   renderBankList();
+  renderGoalList();
   renderReview();
   renderWordList();
   renderListeningPractice();
@@ -1601,8 +2165,32 @@ function render() {
   renderOutputPractice();
   renderJournals();
   renderProgress();
+  renderInsights();
   renderPathProgress();
   renderProgressPractice();
+}
+
+function renderAuthState() {
+  document.body.classList.toggle("auth-required", false);
+
+  const userPanel = document.querySelector("#user-panel");
+  if (userPanel) {
+    userPanel.hidden = !isAuthenticated;
+  }
+
+  const userName = document.querySelector("#user-name");
+  if (userName) {
+    userName.textContent = currentUser?.displayName || currentUser?.email || (isPublicDemo ? "Demo Account" : "");
+  }
+
+  const logoutButton = document.querySelector("#logout-button");
+  if (logoutButton) {
+    logoutButton.hidden = isPublicDemo || !isAuthenticated;
+  }
+}
+
+function redirectToAuthPage() {
+  window.location.replace("./auth.html");
 }
 
 function renderDemoState() {
@@ -1661,9 +2249,39 @@ function bindNavigation() {
 }
 
 function bindForms() {
+  document.querySelector("#login-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitAuthForm(event.currentTarget, "login").catch(handleApiError);
+  });
+
+  document.querySelector("#register-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitAuthForm(event.currentTarget, "register").catch(handleApiError);
+  });
+
   document.querySelector("#word-bank-form")?.addEventListener("submit", (event) => {
     event.preventDefault();
     void saveBankWord(event.currentTarget).catch(handleApiError);
+  });
+
+  document.querySelector("#word-edit-form")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void saveWordEdit(event.currentTarget).catch(handleApiError);
+  });
+
+  document.querySelector("#word-search")?.addEventListener("input", (event) => {
+    wordFilters.search = event.target.value;
+    renderWordList();
+  });
+
+  document.querySelector("#word-status-filter")?.addEventListener("change", (event) => {
+    wordFilters.status = event.target.value;
+    renderWordList();
+  });
+
+  document.querySelector("#word-bank-filter")?.addEventListener("change", (event) => {
+    wordFilters.bankId = event.target.value;
+    renderWordList();
   });
 }
 
@@ -1679,6 +2297,18 @@ function bindQuickActions() {
     resetReviewUi();
     localStorage.setItem(MIGRATION_KEY, new Date().toISOString());
     void applyMutation(api.reset()).catch(handleApiError);
+  });
+
+  document.querySelector("#logout-button")?.addEventListener("click", () => {
+    void logout().catch(handleApiError);
+  });
+
+  document.querySelector("#export-data")?.addEventListener("click", () => {
+    void exportStudyData().catch(handleApiError);
+  });
+
+  document.querySelector("#cancel-word-edit")?.addEventListener("click", () => {
+    cancelWordEdit();
   });
 }
 
@@ -1700,6 +2330,10 @@ async function initialize() {
 
   try {
     await loadServerState();
+    if (!isAuthenticated && !isPublicDemo) {
+      redirectToAuthPage();
+      return;
+    }
     isBootstrapped = true;
     render();
   } catch (error) {
